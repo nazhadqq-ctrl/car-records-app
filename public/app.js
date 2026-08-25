@@ -2147,7 +2147,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (!Array.isArray(records) || records.length === 0) {
-        savedBbTbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:1.5rem;">هیچ کەموکوڕییەک تۆمار نەکراوە بۆ ئەمڕۆ</td></tr>`;
+        savedBbTbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:1.5rem;">هیچ کەموکوڕییەک تۆمار نەکراوە بۆ ئەمڕۆ</td></tr>`;
         return;
       }
 
