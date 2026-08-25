@@ -1213,36 +1213,8 @@ document.addEventListener('DOMContentLoaded', () => {
               🖨️ <span>چاپ</span>
             </button>
           </td>
-          <td>
-            <button type="button" class="btn-delete-car-record" data-id="${r.id}" style="
-              background: #eab308; border: none; color: #111; cursor: pointer; padding: 0.35rem 0.7rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; box-shadow: 0 2px 5px rgba(0,0,0,0.2); white-space: nowrap;
-            " title="Delete record">✕ سڕینەوە</button>
-          </td>
         </tr>
       `).join('');
-
-      // Attach click handlers for delete buttons on CAR_ table
-      tbody.querySelectorAll('.btn-delete-car-record').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const id = parseInt(btn.getAttribute('data-id'), 10);
-          if (!confirm(`Are you sure you want to delete car record #${id}?`)) return;
-          try {
-            const deleteRes = await authFetch('/api/car-records-delete', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id })
-            });
-            const d = await deleteRes.json();
-            if (d.success) {
-              loadCarRecords(); // Refresh the grid
-            } else {
-              alert('Delete failed: ' + (d.error || 'Unknown error'));
-            }
-          } catch (e) {
-            alert('Delete request failed: ' + e.message);
-          }
-        });
-      });
     } catch (e) {
       tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--accent-rose);">Error fetching live records</td></tr>`;
     }
@@ -2191,8 +2163,16 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>${escapeHtml(r.user_ || '-')}</td>
           <td>
             <button type="button" class="btn-delete-defect" data-id="${r.id}" style="
-              background: #eab308; border: none; color: #111; cursor: pointer; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.85rem; font-weight: 700; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            " title="Delete defect">✕ سڕینەوە</button>
+              background: linear-gradient(135deg, #ef4444, #b91c1c);
+              color: #fff; border: none; border-radius: 6px;
+              padding: 0.35rem 0.7rem; font-size: 0.75rem; font-weight: 700;
+              cursor: pointer; display: flex; align-items: center; gap: 0.3rem;
+              transition: all 0.2s; white-space: nowrap;
+            " onmouseover="this.style.transform='scale(1.05)';this.style.boxShadow='0 4px 16px rgba(239,68,68,0.45)'"
+               onmouseout="this.style.transform='scale(1)';this.style.boxShadow='none'"
+            title="Delete defect">
+              <i data-lucide="trash-2" style="width:14px;height:14px;"></i> سڕینەوە
+            </button>
           </td>
         </tr>
       `).join('');
@@ -2219,6 +2199,8 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         });
       });
+
+      if (window.lucide) lucide.createIcons();
     } catch (e) {
       console.error('loadDefectsBBHistory error:', e);
       savedBbTbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--accent-rose);">هەڵە لە هێنانی زانیارییەکان: ${escapeHtml(e.message)}</td></tr>`;
