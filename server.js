@@ -353,6 +353,21 @@ async function verifyAdminPassword(adminPassword) {
   return false;
 }
 
+// Global API Rate Limit Store: { [ip]: { count: number, resetTime: number } }
+const apiRateLimits = new Map();
+function isApiThrottled(clientIp) {
+  const now = Date.now();
+  const record = apiRateLimits.get(clientIp) || { count: 0, resetTime: now + 60000 };
+  if (now > record.resetTime) {
+    record.count = 1;
+    record.resetTime = now + 60000;
+  } else {
+    record.count++;
+  }
+  apiRateLimits.set(clientIp, record);
+  return record.count > 300; // max 300 requests per minute per IP
+}
+
 const server = http.createServer((req, res) => {
   const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
 
@@ -361,9 +376,11 @@ const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https://nominatim.openstreetmap.org");
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
@@ -372,6 +389,12 @@ const server = http.createServer((req, res) => {
 
   const parsedUrl = url.parse(req.url, true);
   const pathname = parsedUrl.pathname;
+
+  // Global API Rate Limiting
+  if (pathname.startsWith('/api/') && isApiThrottled(clientIp)) {
+    res.writeHead(429, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ error: 'Too Many Requests. Please try again later.' }));
+  }
 
   // --- API 1: SETUP & CONNECTION STATUS (ZERO SERVER EXPOSURE TO UNAUTHORIZED VISITORS) ---
   if (pathname === '/api/setup-status' && req.method === 'GET') {
@@ -1041,7 +1064,7 @@ const server = http.createServer((req, res) => {
       }
 
       try {
-        const { carNo, bash, plet, pic, date_into, Nnote, uuser, N_pshknin } = data;
+        const { carNo, bash, plet, pic, date_into, Nnote, uuser, bar_, N_pshknin } = data;
 
         if (isSqlServerConnected && sql) {
           let picBuffer = null;
@@ -1058,7 +1081,7 @@ const server = http.createServer((req, res) => {
           request.input('date_into', sql.Date, date_into || new Date());
           request.input('Nnote', sql.NChar(100), Nnote ? String(Nnote).trim().slice(0, 100) : null);
           request.input('uuser', sql.NVarChar(50), uuser ? String(uuser).trim().slice(0, 50) : 'Operator');
-          request.input('bar_', sql.NVarChar(50), null);
+          request.input('bar_', sql.NVarChar(255), bar_ ? String(bar_).trim().slice(0, 255) : null);
           request.input('N_pshknin', sql.NVarChar(50), N_pshknin ? String(N_pshknin).trim().slice(0, 50) : null);
 
           await request.query(`
@@ -1075,7 +1098,7 @@ const server = http.createServer((req, res) => {
             date_into: date_into || new Date().toISOString().slice(0, 10),
             Nnote,
             uuser: uuser || 'Operator',
-            bar_: null,
+            bar_: bar_ || null,
             N_pshknin
           });
         }
@@ -1248,6 +1271,9 @@ const server = http.createServer((req, res) => {
         res.end(`Server Error: ${err.code}`);
       }
     } else {
+      if (['.css', '.js', '.png', '.jpg', '.jpeg', '.svg', '.woff2'].includes(ext)) {
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+      }
       res.writeHead(200, { 'Content-Type': contentType });
       res.end(content);
     }

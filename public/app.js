@@ -4,6 +4,21 @@
    ═══════════════════════════════════════════════════════════════ */
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Professional Log Filtering for Production
+  if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    console.log = function() {};
+    console.info = function() {};
+  }
+
+  // Utility for Performance Optimization (Debounce)
+  function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+  }
+
   if (window.lucide) lucide.createIcons();
 
   const state = {
@@ -46,6 +61,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- 1. ROUTING & TAB NAVIGATION ---
   function showView(viewId) {
+    // Prevent Memory Leak: Stop camera when navigating away from scanner
+    if (viewId !== 'scanner' && typeof stopCameraStream === 'function') {
+      try { stopCameraStream(); } catch(e) {}
+    }
+
     Object.keys(views).forEach(k => {
       if (views[k]) views[k].classList.remove('active');
     });
@@ -801,50 +821,78 @@ document.addEventListener('DOMContentLoaded', () => {
       const fontSecondary = Math.max(12, Math.round(vh * 0.019));
 
       // Translucent Semi-Transparent Watermark Background (شبه مائي شفاف لإظهار تفاصيل ومعالم الصورة خلف النص)
+      // Modified to be darker for much better readability over bright images
       const grad = ctx.createLinearGradient(0, vh - barH, 0, vh);
-      grad.addColorStop(0, 'rgba(0, 0, 0, 0.18)');
-      grad.addColorStop(1, 'rgba(0, 0, 0, 0.40)');
+      grad.addColorStop(0, 'rgba(0, 0, 0, 0.65)');
+      grad.addColorStop(1, 'rgba(0, 0, 0, 0.95)');
       ctx.fillStyle = grad;
       ctx.fillRect(0, vh - barH, vw, barH);
 
       // Top Subtle Cyan Highlight Line
-      ctx.fillStyle = 'rgba(34, 211, 238, 0.45)';
+      ctx.fillStyle = 'rgba(34, 211, 238, 0.75)';
       ctx.fillRect(0, vh - barH, vw, 2);
 
       // Enable Anti-Tamper Text Drop Shadow for Maximum Legibility over Translucent Photo Background
       ctx.save();
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
-      ctx.shadowBlur = 4;
-      ctx.shadowOffsetX = 1;
-      ctx.shadowOffsetY = 1;
+      ctx.shadowColor = '#000000';
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
 
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
+      ctx.direction = 'rtl'; // Set direction to RTL for proper Arabic rendering
+
+      const maxTextWidth = vw - 40; // 20px padding on each side
 
       if (hasPlace) {
-        // Line 1: Place Name
+        // Line 1: Place Name (with dynamic font sizing for long Arabic names)
         ctx.fillStyle = '#38bdf8'; // bright cyan
-        ctx.font = `bold ${fontPrimary}px 'Segoe UI', Tahoma, sans-serif`;
-        ctx.fillText(`📍 ${capturedGPS.placeName}`, vw / 2, vh - barH * 0.65);
+        let currentFont = fontPrimary;
+        let placeString = `${capturedGPS.placeName} 📍`; // Emoji at the end for RTL
+        ctx.font = `bold ${currentFont}px 'Segoe UI', Tahoma, sans-serif`;
+        
+        // Dynamically reduce font size if text is too wide
+        while (ctx.measureText(placeString).width > maxTextWidth && currentFont > 10) {
+          currentFont -= 1;
+          ctx.font = `bold ${currentFont}px 'Segoe UI', Tahoma, sans-serif`;
+        }
+        ctx.fillText(placeString, vw / 2, vh - barH * 0.65);
 
         // Line 2: Coordinates + Accuracy + Timestamp
         ctx.fillStyle = '#ffffff';
-        ctx.font = `600 ${fontSecondary}px monospace`;
+        ctx.direction = 'ltr'; // Switch back to LTR for coordinates/numbers
+        let subFont = fontSecondary;
         const subLabel = `🌐 GPS: ${capturedGPS.lat}, ${capturedGPS.lng} (±${capturedGPS.accuracy}m)  |  📅 ${capturedGPS.timestamp}`;
+        ctx.font = `600 ${subFont}px monospace`;
+        
+        while (ctx.measureText(subLabel).width > maxTextWidth && subFont > 8) {
+          subFont -= 1;
+          ctx.font = `600 ${subFont}px monospace`;
+        }
         ctx.fillText(subLabel, vw / 2, vh - barH * 0.25);
-
-        gpsOverlay.innerHTML = `<strong>📍 ${escapeHtml(capturedGPS.placeName)}</strong><br><span style="font-size:0.75rem; opacity:0.95;">🌐 ${capturedGPS.lat}, ${capturedGPS.lng} (±${capturedGPS.accuracy}m) — ${capturedGPS.timestamp}</span>`;
       } else {
         ctx.fillStyle = '#ffffff';
-        ctx.font = `bold ${fontPrimary}px monospace`;
+        ctx.direction = 'ltr';
+        let gpsFont = fontPrimary;
         const gpsLabel = `📍 GPS: ${capturedGPS.lat}, ${capturedGPS.lng}  ±${capturedGPS.accuracy}m  |  ${capturedGPS.timestamp}`;
+        ctx.font = `bold ${gpsFont}px monospace`;
+        
+        while (ctx.measureText(gpsLabel).width > maxTextWidth && gpsFont > 10) {
+          gpsFont -= 1;
+          ctx.font = `bold ${gpsFont}px monospace`;
+        }
         ctx.fillText(gpsLabel, vw / 2, vh - barH / 2);
-        gpsOverlay.textContent = '📍 ' + gpsLabel;
       }
+      // Hide HTML overlay to prevent overlapping double-text with the burnt-in canvas watermark
+      if (gpsOverlay) gpsOverlay.style.display = 'none';
 
       ctx.restore();
     } else {
-      gpsOverlay.textContent = '⚠️ لا يوجد بيانات GPS للصورة';
+      if (gpsOverlay) {
+        gpsOverlay.style.display = 'block';
+        gpsOverlay.textContent = '⚠️ لا يوجد بيانات GPS للصورة';
+      }
     }
 
     // 3. High-Efficiency Compression (JPEG 0.80 -> reduces file from 5MB to ~150KB with zero visible loss)
@@ -1041,9 +1089,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Handle typing across all mobile keyboards (input, keyup, composition)
+    const debouncedRenderPletMenu = debounce((val) => renderPletMenu(val), 150);
     ['input', 'keyup', 'paste', 'compositionend'].forEach(evt => {
       pletInput.addEventListener(evt, () => {
-        renderPletMenu(pletInput.value.trim());
+        debouncedRenderPletMenu(pletInput.value.trim());
       });
     });
 
@@ -1102,7 +1151,7 @@ document.addEventListener('DOMContentLoaded', () => {
       date_into: document.getElementById('car-date_into') ? document.getElementById('car-date_into').value : new Date().toISOString().slice(0, 10),
       Nnote: document.getElementById('car-Nnote') ? document.getElementById('car-Nnote').value.trim() : null,
       uuser: state.currentUser.Username,
-      bar_: null,
+      bar_: capturedGPS ? (capturedGPS.placeName || `GPS: ${capturedGPS.lat}, ${capturedGPS.lng}`) : null,
       N_pshknin: document.getElementById('car-N_pshknin') ? document.getElementById('car-N_pshknin').value.trim() : null
     };
 
@@ -1139,7 +1188,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const records = await res.json();
 
       if (records.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:1rem;">No records submitted today</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:1rem;">No records submitted today</td></tr>`;
         return;
       }
 
@@ -1149,10 +1198,9 @@ document.addEventListener('DOMContentLoaded', () => {
           <td><strong>${escapeHtml(r.carNo || '-')}</strong></td>
           <td>${escapeHtml(r.bash || '-')}</td>
           <td>${escapeHtml(r.plet || '-')}</td>
-          <td>${r.date_into ? new Date(r.date_into).toLocaleDateString('en-GB') : '-'}</td>
+          <td>${r.date_into ? formatDateDisplay(r.date_into) : '-'}</td>
           <td>${escapeHtml(r.uuser || '-')}</td>
           <td>${escapeHtml(r.N_pshknin || '-')}</td>
-          <td style="max-width:140px;" title="${escapeHtml(r.Nnote || '')}">${escapeHtml(r.Nnote || '-')}</td>
           <td>
             <button onclick="window.__printCarReport(${r.id})" style="
               background: linear-gradient(135deg, #6366f1, #8b5cf6);
@@ -1162,13 +1210,13 @@ document.addEventListener('DOMContentLoaded', () => {
               transition: all 0.2s; white-space: nowrap;
             " onmouseover="this.style.transform='scale(1.05)';this.style.boxShadow='0 4px 16px rgba(99,102,241,0.45)'"
                onmouseout="this.style.transform='scale(1)';this.style.boxShadow='none'">
-              🖨️ <span>Print</span>
+              🖨️ <span>چاپ</span>
             </button>
           </td>
         </tr>
       `).join('');
     } catch (e) {
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--accent-rose);">Error fetching live records</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--accent-rose);">Error fetching live records</td></tr>`;
     }
   }
 
@@ -1646,10 +1694,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (dfCccInput && dfCccMenu) {
     dfCccInput.addEventListener('focus', () => renderDfPletMenu(dfCccInput.value.trim()));
-    dfCccInput.addEventListener('click', () => renderDfPletMenu(dfCccInput.value.trim()));
+    const debouncedRenderDfPletMenu = debounce((val) => renderDfPletMenu(val), 150);
+    dfCccInput.addEventListener('click', () => debouncedRenderDfPletMenu(dfCccInput.value.trim()));
 
     ['input', 'keyup', 'paste', 'compositionend'].forEach(evt => {
-      dfCccInput.addEventListener(evt, () => renderDfPletMenu(dfCccInput.value.trim()));
+      dfCccInput.addEventListener(evt, () => debouncedRenderDfPletMenu(dfCccInput.value.trim()));
     });
 
     if (dfCccArrowBtn) {
@@ -1852,10 +1901,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (dfXxInput && dfXxMenu) {
     dfXxInput.addEventListener('focus', () => renderDefectsComboboxMenu(dfXxInput.value.trim()));
-    dfXxInput.addEventListener('click', () => renderDefectsComboboxMenu(dfXxInput.value.trim()));
+    const debouncedRenderDefectsComboboxMenu = debounce((val) => renderDefectsComboboxMenu(val), 150);
+    dfXxInput.addEventListener('click', () => debouncedRenderDefectsComboboxMenu(dfXxInput.value.trim()));
 
     ['input', 'keyup', 'paste', 'compositionend'].forEach(evt => {
-      dfXxInput.addEventListener(evt, () => renderDefectsComboboxMenu(dfXxInput.value.trim()));
+      dfXxInput.addEventListener(evt, () => debouncedRenderDefectsComboboxMenu(dfXxInput.value.trim()));
     });
 
     if (dfXxArrowBtn) {
