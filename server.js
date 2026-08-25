@@ -1025,23 +1025,18 @@ const server = http.createServer((req, res) => {
           const queryStr = `
             SELECT TOP 500 id, Psulla, Xx_, date_, user_, AA, BBB, CCC, DDD, EEE 
             FROM dbo.BB 
-            WHERE CAST(date_ AS DATE) = (
-              SELECT MAX(CAST(date_ AS DATE)) FROM dbo.BB
-            )
+            WHERE CAST(date_ AS DATE) = CAST(GETDATE() AS DATE)
             ORDER BY id DESC
           `;
           const result = await request.query(queryStr);
           records = result.recordset || [];
         } else {
-          // Strict array filter for the single latest date only
-          if (defectsBBRecords.length > 0) {
-            const dates = defectsBBRecords.map(r => r.date_ ? (typeof r.date_ === 'string' ? r.date_.slice(0, 10) : new Date(r.date_).toISOString().slice(0, 10)) : '').filter(Boolean);
-            const latestDate = dates.sort().pop();
-            records = defectsBBRecords.filter(r => {
-              const d = r.date_ ? (typeof r.date_ === 'string' ? r.date_.slice(0, 10) : new Date(r.date_).toISOString().slice(0, 10)) : '';
-              return d === latestDate;
-            }).reverse();
-          }
+          // Strict array filter for today's date only
+          const todayStr = new Date().toISOString().slice(0, 10);
+          records = defectsBBRecords.filter(r => {
+            const d = r.date_ ? (typeof r.date_ === 'string' ? r.date_.slice(0, 10) : new Date(r.date_).toISOString().slice(0, 10)) : '';
+            return d === todayStr;
+          }).reverse();
         }
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
