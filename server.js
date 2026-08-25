@@ -1050,6 +1050,38 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // --- API 8.6: DELETE DEFECT RECORD FROM dbo.BB ---
+  if (pathname === '/api/defects-delete' && req.method === 'POST') {
+    const session = verifySession(req);
+    sanitizeBody(req, async (err, body) => {
+      if (err || !body || !body.id) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'Invalid or missing defect ID' }));
+      }
+      try {
+        const id = parseInt(body.id, 10);
+        if (isSqlServerConnected && sql) {
+          const request = new sql.Request();
+          request.input('id', sql.Int, id);
+          await request.query('DELETE FROM dbo.BB WHERE id = @id');
+        } else {
+          // Fallback in-memory delete
+          const idx = defectsBBRecords.findIndex(r => r.id === id);
+          if (idx !== -1) {
+            defectsBBRecords.splice(idx, 1);
+          }
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: true, message: 'Defect deleted successfully' }));
+      } catch (e) {
+        console.error('/api/defects-delete error:', e);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'Database delete failed' }));
+      }
+    });
+    return;
+  }
+
   // --- API 9: SUBMIT CAR_ RECORD & IMAGE (SECURE PARAMETERIZED INSERT) ---
   if (pathname === '/api/car-records' && req.method === 'POST') {
     sanitizeBody(req, async (err, data) => {

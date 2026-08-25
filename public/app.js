@@ -2161,8 +2161,36 @@ document.addEventListener('DOMContentLoaded', () => {
           <td style="font-weight:600; color:#fbbf24;">⚠️ ${escapeHtml(r.Xx_ || '-')}</td>
           <td>${formatDateDisplay(r.date_)}</td>
           <td>${escapeHtml(r.user_ || '-')}</td>
+          <td>
+            <button type="button" class="btn-delete-defect" data-id="${r.id}" style="
+              background: none; border: none; color: var(--accent-rose); cursor: pointer; padding: 0.2rem 0.5rem; font-size: 0.85rem; font-weight: 700;
+            " title="Delete defect">✕ سڕینەوە</button>
+          </td>
         </tr>
       `).join('');
+
+      // Attach click handlers for delete buttons
+      savedBbTbody.querySelectorAll('.btn-delete-defect').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = parseInt(btn.getAttribute('data-id'), 10);
+          if (!confirm(`Are you sure you want to delete defect #${id}?`)) return;
+          try {
+            const deleteRes = await authFetch('/api/defects-delete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id })
+            });
+            const d = await deleteRes.json();
+            if (d.success) {
+              loadDefectsBBHistory(); // Refresh the grid
+            } else {
+              alert('Delete failed: ' + (d.error || 'Unknown error'));
+            }
+          } catch (e) {
+            alert('Delete request failed: ' + e.message);
+          }
+        });
+      });
     } catch (e) {
       console.error('loadDefectsBBHistory error:', e);
       savedBbTbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--accent-rose);">هەڵە لە هێنانی زانیارییەکان: ${escapeHtml(e.message)}</td></tr>`;
