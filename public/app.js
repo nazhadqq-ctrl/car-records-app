@@ -1213,8 +1213,36 @@ document.addEventListener('DOMContentLoaded', () => {
               🖨️ <span>چاپ</span>
             </button>
           </td>
+          <td>
+            <button type="button" class="btn-delete-car-record" data-id="${r.id}" style="
+              background: #eab308; border: none; color: #111; cursor: pointer; padding: 0.35rem 0.7rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; box-shadow: 0 2px 5px rgba(0,0,0,0.2); white-space: nowrap;
+            " title="Delete record">✕ سڕینەوە</button>
+          </td>
         </tr>
       `).join('');
+
+      // Attach click handlers for delete buttons on CAR_ table
+      tbody.querySelectorAll('.btn-delete-car-record').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = parseInt(btn.getAttribute('data-id'), 10);
+          if (!confirm(`Are you sure you want to delete car record #${id}?`)) return;
+          try {
+            const deleteRes = await authFetch('/api/car-records-delete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id })
+            });
+            const d = await deleteRes.json();
+            if (d.success) {
+              loadCarRecords(); // Refresh the grid
+            } else {
+              alert('Delete failed: ' + (d.error || 'Unknown error'));
+            }
+          } catch (e) {
+            alert('Delete request failed: ' + e.message);
+          }
+        });
+      });
     } catch (e) {
       tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--accent-rose);">Error fetching live records</td></tr>`;
     }
