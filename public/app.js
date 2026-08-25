@@ -2163,7 +2163,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>${escapeHtml(r.user_ || '-')}</td>
           <td>
             <button type="button" class="btn-delete-defect" data-id="${r.id}" style="
-              background: none; border: none; color: var(--accent-rose); cursor: pointer; padding: 0.2rem 0.5rem; font-size: 0.85rem; font-weight: 700;
+              background: #eab308; border: none; color: #111; cursor: pointer; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.85rem; font-weight: 700; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             " title="Delete defect">✕ سڕینەوە</button>
           </td>
         </tr>
