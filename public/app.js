@@ -687,9 +687,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!str) return '';
     return String(str)
       .replace(/[ەھه]/g, 'ه')
-      .replace(/[یيىێ]/g, 'ی')
+      .replace(/[ییىێ]/g, 'ی')
       .replace(/[ۆوؤ]/g, 'و')
-      .replace(/[كک]/g, 'ک')
+      .replace(/[کک]/g, 'ک')
       .replace(/[ڵل]/g, 'ل')
       .replace(/[ڕر]/g, 'ر')
       .toLowerCase()
@@ -778,14 +778,14 @@ document.addEventListener('DOMContentLoaded', () => {
       openCameraBtn.style.display = 'none';
       previewWrap.style.display = 'none';
     } catch (err) {
-      alert('تعذّر فتح الكاميرا: ' + err.message + '\n\nتأكد من إعطاء إذن الكاميرا للمتصفح.');
+      alert('تعذّر فتح الکامیرا: ' + err.message + '\n\nتأکد من إعطاء إذن الکامیرا للمتصفح.');
     }
   }
 
   function captureFrameWithGPS() {
     const rawW = cameraVideo.videoWidth;
     const rawH = cameraVideo.videoHeight;
-    if (!rawW || !rawH) { alert('الكاميرا غير جاهزة بعد'); return; }
+    if (!rawW || !rawH) { alert('الکامیرا غیر جاهزة بعد'); return; }
 
     // STANDARD LANDSCAPE HD DIMENSIONS (1280 x 720 — 16:9 Standard Automotive Inspection Format)
     const TARGET_WIDTH = 1280;
@@ -820,7 +820,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const fontPrimary = Math.max(16, Math.round(vh * 0.026));
       const fontSecondary = Math.max(12, Math.round(vh * 0.019));
 
-      // Translucent Semi-Transparent Watermark Background (شبه مائي شفاف لإظهار تفاصيل ومعالم الصورة خلف النص)
+      // Translucent Semi-Transparent Watermark Background (شبه مائی شفاف لإظهار تفاصیل ومعالم الصورة خلف النص)
       // Modified to be darker for much better readability over bright images
       const grad = ctx.createLinearGradient(0, vh - barH, 0, vh);
       grad.addColorStop(0, 'rgba(0, 0, 0, 0.65)');
@@ -891,7 +891,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       if (gpsOverlay) {
         gpsOverlay.style.display = 'block';
-        gpsOverlay.textContent = '⚠️ لا يوجد بيانات GPS للصورة';
+        gpsOverlay.textContent = '⚠️ لا یوجد بیانات GPS للصورة';
       }
     }
 
@@ -902,7 +902,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const approxKb = Math.round((stampedDataUrl.length * 3 / 4) / 1024);
     const sizeBadge = document.getElementById('image-size-badge');
     if (sizeBadge) {
-      sizeBadge.textContent = `📐 1280×720 (أفقي ستاندارد) | 💾 حجم الحفظ: ~${approxKb} KB`;
+      sizeBadge.textContent = `📐 1280×720 (أفقی ستاندارد) | 💾 حجم الحفظ: ~${approxKb} KB`;
     }
 
     imgPreview.src = stampedDataUrl;
@@ -913,11 +913,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   openCameraBtn.addEventListener('click', () => {
     gpsDot.style.background = '#f59e0b';
-    gpsText.textContent = '📡 جاري الحصول على الموقع واسم المنطقة...';
+    gpsText.textContent = '📡 جاری الحصول على الموقع واسم المنطقة...';
 
     if (!navigator.geolocation) {
       gpsDot.style.background = '#ef4444';
-      gpsText.textContent = '❌ متصفحك لا يدعم GPS. ستُلتقط الصورة بدون موقع.';
+      gpsText.textContent = '❌ متصفحک لا یدعم GPS. ستُلتقط الصورة بدون موقع.';
       capturedGPS = null;
       startCameraStream();
       return;
@@ -955,7 +955,7 @@ document.addEventListener('DOMContentLoaded', () => {
       (err) => {
         capturedGPS = null;
         gpsDot.style.background = '#ef4444';
-        gpsText.textContent = `⚠️ تعذّر الحصول على GPS (${err.message}). الكاميرا تعمل بدون موقع.`;
+        gpsText.textContent = `⚠️ تعذّر الحصول على GPS (${err.message}). الکامیرا تعمل بدون موقع.`;
         startCameraStream();
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
@@ -988,7 +988,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Kurdish & Arabic Keyboard Letters -> English Uppercase (QWERTY Layout Mapping)
       'ض':'Q', 'ص':'W', 'ث':'E', 'ق':'R', 'ف':'T', 'غ':'Y', 'ع':'U', 'ه':'I', 'خ':'O', 'ح':'P', 'ج':'P', 'چ':'C', 'پ':'P',
-      'ش':'A', 'س':'S', 'ي':'D', 'ێ':'D', 'ب':'F', 'ل':'G', 'ا':'H', 'ت':'J', 'ن':'K', 'م':'L', 'ک':'K', 'گ':'G', 'ڵ':'L',
+      'ش':'A', 'س':'S', 'ی':'D', 'ێ':'D', 'ب':'F', 'ل':'G', 'ا':'H', 'ت':'J', 'ن':'K', 'م':'L', 'ک':'K', 'گ':'G', 'ڵ':'L',
       'ئ':'Z', 'ء':'X', 'ؤ':'C', 'ر':'V', 'ڕ':'R', 'ى':'N', 'ی':'N', 'ة':'M', 'ە':'M', 'ۆ':'O', 'ژ':'Z', 'ڤ':'V',
       'ط':'I', 'ظ':'Z', 'ذ':'Z', 'د':'D', 'ز':'Z'
     };
@@ -1038,13 +1038,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const pletList = [
     "هەولێر", "سلێمانی", "دهۆک", "هەڵەبجە", "کەرکوک", "کاتی هەولێر", "کاتی سلێمانی", "کاتی دهۆک",
-    "الاردن تصدیر", "الانبار", "البصرة", "القادسية", "النجف", "انبار", "بابل", "بازرگانی و پیشەسازی",
+    "الاردن تصدیر", "الانبار", "البصرة", "القادسیة", "النجف", "انبار", "بابل", "بازرگانی و پیشەسازی",
     "بصرة", "بغداد", "بێ ژمارە", "بێ سەرەتا", "بەرگری شارستانی", "بەرگری و شارستانی گەرمیان",
     "بەرگری و فریاکەوتن", "پۆلیسی دارستان", "تەندروستی", "پەروەردە", "پۆلیس", "پۆلیسی نەوت و گاز",
-    "خوێندنی باڵا", "داد", "دارایی", "دەزگای مین", "ديالى", "دیالى فحص مؤقت", "ژمارەی بیانی",
+    "خوێندنی باڵا", "داد", "دارایی", "دەزگای مین", "دیالى", "دیالى فحص مؤقت", "ژمارەی بیانی",
     "ڕۆشنبیری", "ڕێکخراوەکان", "ڕەگەزنامە", "زیقار", "شارەوانی و گەشتوگوزار", "صلاح الدین",
-    "فحص مؤقت  مثنى", "فحص موقت البصرة", "فحص موقت النجف", "فحص موقت ديالى", "فحص موقت كركوك",
-    "فحص موقت نينوى", "فحص مؤقت الانبار", "فحص مؤقت انبار", "فحص مؤقت بابل", "فحص مؤقت بغداد",
+    "فحص مؤقت  مثنى", "فحص موقت البصرة", "فحص موقت النجف", "فحص موقت دیالى", "فحص موقت کرکوک",
+    "فحص موقت نینوى", "فحص مؤقت الانبار", "فحص مؤقت انبار", "فحص مؤقت بابل", "فحص مؤقت بغداد",
     "فحص مؤقت زیقار", "فحص مؤقت صلاح الدین", "فحص مؤقت قادسیة", "فحص مؤقت کربلاء",
     "فحص مؤقت میسان", "فحص مؤقت نینوى", "فحص مؤقت واسط", "کارەبا", "کەربەلا", "کشتوکاڵ",
     "کشتوکاڵ و سەرچاوەکانی ئاو", "گواستنەوە و گەیاندن", "مثنى", "میسان", "ناوخۆ", "نینوى",
@@ -1530,7 +1530,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     <div class="data-grid" style="grid-template-columns: 1fr 1fr;">
       <div class="data-cell">
-        <span class="data-label">(پشكنینی)</span>
+        <span class="data-label">(پشکنینی)</span>
         <span class="data-value">${escapeHtml(r.N_pshknin || '—')}</span>
       </div>
       <div class="data-cell">
