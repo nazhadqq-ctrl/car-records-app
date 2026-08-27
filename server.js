@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 
 const PORT = process.env.PORT || 3002;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -238,8 +239,12 @@ async function initSqlServer(config) {
               [User_] [nvarchar](50) NULL,
               [permetion] [nvarchar](50) NULL,
               [on_off] [nvarchar](50) NULL,
-              [password] [nvarchar](50) NULL
+              [password] [nvarchar](255) NULL
           );
+      END
+      ELSE
+      BEGIN
+          ALTER TABLE dbo.image_user ALTER COLUMN [password] [nvarchar](255) NULL;
       END
 
       IF OBJECT_ID(N'dbo.BB', N'U') IS NULL
@@ -336,15 +341,20 @@ async function verifyAdminPassword(adminPassword) {
   if (isSqlServerConnected && sql) {
     try {
       const request = new sql.Request();
-      request.input('adminPass', sql.NVarChar(50), passStr);
       const result = await request.query(`
-        SELECT TOP 1 id, User_, permetion 
+        SELECT id, User_, permetion, password 
         FROM dbo.image_user 
         WHERE (LOWER(User_) = 'admin' OR LOWER(permetion) = 'admin') 
-          AND password = @adminPass 
           AND (on_off = 'on' OR on_off = 'yes' OR on_off = 'YES' OR on_off = '1' OR on_off = 'true' OR on_off IS NULL)
       `);
-      if (result.recordset.length > 0) return true;
+      for (const row of result.recordset) {
+        const storedPass = String(row.password || '');
+        if (storedPass.startsWith('$2a$') || storedPass.startsWith('$2b$')) {
+          if (bcrypt.compareSync(passStr, storedPass)) return true;
+        } else {
+          if (storedPass === passStr) return true;
+        }
+      }
     } catch (e) {
       console.warn('verifyAdminPassword SQL error:', e.message);
     }
@@ -369,7 +379,7 @@ function isApiThrottled(clientIp) {
 }
 
 const server = http.createServer((req, res) => {
-  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+  const clientIp = req.socket.remoteAddress || '127.0.0.1';
 
   // --- HARDENED SECURITY HEADERS ---
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -465,16 +475,24 @@ const server = http.createServer((req, res) => {
         try {
           const request = new sql.Request();
           request.input('User_', sql.NVarChar(50), username);
-          request.input('password', sql.NVarChar(50), password);
           const result = await request.query(`
-            SELECT TOP 1 id, User_, permetion, on_off 
+            SELECT id, User_, permetion, on_off, password 
             FROM dbo.image_user 
             WHERE (LOWER(User_) = LOWER(@User_) OR LOWER(permetion) = 'admin') 
-              AND password = @password 
               AND (on_off = 'on' OR on_off = 'yes' OR on_off = 'YES' OR on_off = '1' OR on_off = 'true' OR on_off IS NULL)
           `);
-          if (result.recordset.length > 0) {
-            isValid = true;
+          for (const row of result.recordset) {
+            const storedPass = String(row.password || '');
+            let matched = false;
+            if (storedPass.startsWith('$2a$') || storedPass.startsWith('$2b$')) {
+              matched = bcrypt.compareSync(password, storedPass);
+            } else {
+              matched = (storedPass === password);
+            }
+            if (matched) {
+              isValid = true;
+              break;
+            }
           }
         } catch (e) {
           console.warn('verify-admin SQL query error:', e.message);
@@ -553,7 +571,7 @@ const server = http.createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({
           success: false,
-          error: sqlErr.message
+          error: 'A database error occurred'
         }));
       }
     });
@@ -624,7 +642,7 @@ const server = http.createServer((req, res) => {
         }));
       } catch (saveErr) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: saveErr.message }));
+        return res.end(JSON.stringify({ error: 'A database error occurred' }));
       }
     });
     return;
@@ -686,7 +704,7 @@ const server = http.createServer((req, res) => {
         }));
       } catch (switchErr) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: switchErr.message }));
+        return res.end(JSON.stringify({ error: 'A database error occurred' }));
       }
     });
     return;
@@ -741,15 +759,24 @@ const server = http.createServer((req, res) => {
         try {
           const request = new sql.Request();
           request.input('User_', sql.NVarChar(50), String(username).trim());
-          request.input('password', sql.NVarChar(50), String(password));
           const result = await request.query(`
-            SELECT TOP 1 id, User_, permetion, on_off, password 
+            SELECT id, User_, permetion, on_off, password 
             FROM dbo.image_user 
-            WHERE User_ = @User_ AND password = @password 
+            WHERE User_ = @User_
               AND (on_off = 'on' OR on_off = 'yes' OR on_off = 'YES' OR on_off = '1' OR on_off = 'true' OR on_off IS NULL)
           `);
-          if (result.recordset.length > 0) {
-            user = result.recordset[0];
+          for (const row of result.recordset) {
+            const storedPass = String(row.password || '');
+            let matched = false;
+            if (storedPass.startsWith('$2a$') || storedPass.startsWith('$2b$')) {
+              matched = bcrypt.compareSync(password, storedPass);
+            } else {
+              matched = (storedPass === password);
+            }
+            if (matched) {
+              user = row;
+              break;
+            }
           }
         } catch (sqlErr) {
           console.warn('SQL login query error:', sqlErr.message);
@@ -790,7 +817,7 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify(result.recordset));
       }).catch(err => {
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: err.message }));
+        res.end(JSON.stringify({ error: 'An internal error occurred' }));
       });
     } else {
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -819,10 +846,11 @@ const server = http.createServer((req, res) => {
       const status = String(on_off || 'on').trim();
 
       try {
+        const hashedPassword = bcrypt.hashSync(String(password), 10);
         if (isSqlServerConnected && sql) {
           const request = new sql.Request();
           request.input('User_', sql.NVarChar(50), String(User_).trim());
-          request.input('password', sql.NVarChar(50), String(password));
+          request.input('password', sql.NVarChar(255), hashedPassword);
           request.input('permetion', sql.NVarChar(50), role);
           request.input('on_off', sql.NVarChar(50), status);
           await request.query(`
@@ -833,7 +861,7 @@ const server = http.createServer((req, res) => {
           inMemoryImageUsers.push({
             id: inMemoryImageUsers.length + 1,
             User_: String(User_).trim(),
-            password: String(password),
+            password: hashedPassword,
             permetion: role,
             on_off: status
           });
@@ -843,7 +871,7 @@ const server = http.createServer((req, res) => {
         return res.end(JSON.stringify({ success: true, User_ }));
       } catch (insertErr) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: insertErr.message }));
+        return res.end(JSON.stringify({ error: 'A database error occurred' }));
       }
     });
     return;
@@ -873,7 +901,7 @@ const server = http.createServer((req, res) => {
         return res.end(JSON.stringify({ success: true }));
       } catch (toggleErr) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: toggleErr.message }));
+        return res.end(JSON.stringify({ error: 'A database error occurred' }));
       }
     });
     return;
@@ -901,7 +929,7 @@ const server = http.createServer((req, res) => {
         return res.end(JSON.stringify({ success: true }));
       } catch (deleteErr) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: deleteErr.message }));
+        return res.end(JSON.stringify({ error: 'A database error occurred' }));
       }
     });
     return;
@@ -950,7 +978,7 @@ const server = http.createServer((req, res) => {
 
       const Psulla = parsedPsulla;
       const date_ = body.date_ || new Date().toISOString().slice(0, 10);
-      const user_ = String(body.user_ || (session ? session.username : 'admin')).trim();
+      const user_ = session ? session.username : 'admin';
       const AA = String(body.AA || '').trim();
       const BBB = String(body.BBB || '').trim();
       const CCC = String(body.CCC || '').trim();
@@ -1009,7 +1037,7 @@ const server = http.createServer((req, res) => {
       } catch (batchErr) {
         console.error('defects-batch SQL error:', batchErr);
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: batchErr.message }));
+        return res.end(JSON.stringify({ error: 'A database error occurred' }));
       }
     });
     return;
@@ -1134,7 +1162,7 @@ const server = http.createServer((req, res) => {
         return res.end(JSON.stringify({ success: true, message: 'Record inserted into CAR_ table successfully!' }));
       } catch (insertErr) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: insertErr.message }));
+        return res.end(JSON.stringify({ error: 'A database error occurred' }));
       }
     });
     return;
@@ -1148,7 +1176,7 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify(result.recordset));
       }).catch(err => {
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: err.message }));
+        res.end(JSON.stringify({ error: 'An internal error occurred' }));
       });
     } else {
       const todayStr = new Date().toISOString().slice(0, 10);
@@ -1198,7 +1226,7 @@ const server = http.createServer((req, res) => {
         })
         .catch(err => {
           res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: err.message }));
+          res.end(JSON.stringify({ error: 'An internal error occurred' }));
         });
     } else {
       const rec = carRecords.find(r => r.id === parseInt(recordId));
@@ -1243,7 +1271,7 @@ const server = http.createServer((req, res) => {
     })
     .catch(err => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ placeName: '', error: err.message }));
+      res.end(JSON.stringify({ placeName: '', error: 'An internal error occurred' }));
     });
     return;
   }
@@ -1280,7 +1308,7 @@ const server = http.createServer((req, res) => {
   } catch (e) {}
 
   // Path traversal check
-  if (!filePath.startsWith(PUBLIC_DIR)) {
+  if (!filePath.startsWith(PUBLIC_DIR + path.sep)) {
     res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
     return res.end('403 Forbidden: Invalid file path.');
   }

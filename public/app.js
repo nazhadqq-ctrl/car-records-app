@@ -21,6 +21,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (window.lucide) lucide.createIcons();
 
+  // ─── GLOBAL KURDISH TEXT STANDARDIZATION ───
+  // This fixes issues with C4Kurd and Arabic keyboards (e.g. converting 'هـ' to 'ه', Arabic 'ي' to 'ی', etc.)
+  function standardizeKurdishText(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/ـ/g, '')      // Remove Kashida / Tatweel (U+0640)
+      .replace(/ك/g, 'ک')    // Replace Arabic Kaf (U+0643) with Keheh (U+06A9)
+      .replace(/ي/g, 'ی')    // Replace Arabic Yeh (U+064A) with Farsi Yeh (U+06CC)
+      .replace(/ى/g, 'ی')    // Replace Alef Maksura (U+0649) with Farsi Yeh (U+06CC)
+      .replace(/ة/g, 'ە');   // Replace Teh Marbuta (U+0629) with Ae (U+06D5)
+  }
+
+  document.addEventListener('input', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+      const type = e.target.type;
+      // Apply to text, search, and undefined types, but NOT passwords or emails where exact characters might matter (though rarely typed in Kurdish)
+      if (type === 'text' || type === 'search' || !type || e.target.tagName === 'TEXTAREA') {
+         // Skip chassis and barcode as they are strictly alphanumeric/English
+         if (e.target.id === 'cd-chassis' || e.target.id === 'cd-barcode') return;
+         
+         const start = e.target.selectionStart;
+         const end = e.target.selectionEnd;
+         const originalValue = e.target.value;
+         const newValue = standardizeKurdishText(originalValue);
+         
+         if (originalValue !== newValue) {
+             e.target.value = newValue;
+             // Restore cursor position if possible
+             if (start !== null) {
+                 // Adjust cursor if length changed (removing characters)
+                 const diff = originalValue.length - newValue.length;
+                 e.target.setSelectionRange(start - diff, end - diff);
+             }
+         }
+      }
+    }
+  });
+
   const state = {
     currentUser: JSON.parse(sessionStorage.getItem('car_app_user')) || null,
     sessionToken: sessionStorage.getItem('car_app_token') || '',
@@ -56,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'users': document.getElementById('view-users'),
     'scanner': document.getElementById('view-scanner'),
     'defects': document.getElementById('view-defects'),
+    'car-details': document.getElementById('view-car-details'),
     'login': document.getElementById('view-login')
   };
 
@@ -97,6 +136,22 @@ document.addEventListener('DOMContentLoaded', () => {
       syncCarDetailsToDefectsPage();
       loadDefectsSuggestions();
       loadDefectsBBHistory();
+    } else if (viewId === 'car-details') {
+      // Auto-fill username if available
+      const cdUsername = document.getElementById('cd-username');
+      if (cdUsername && state.currentUser) {
+        cdUsername.value = state.currentUser.Username;
+      }
+
+      // Auto-fill today's date if empty
+      const cdDateEl = document.getElementById('cd-date_');
+      if (cdDateEl && !cdDateEl.value) {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        cdDateEl.value = `${yyyy}-${mm}-${dd}`;
+      }
     }
 
     if (window.lucide) lucide.createIcons();
@@ -213,6 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const tabUsersBtn = document.getElementById('tab-users-btn');
       const tabScannerBtn = document.getElementById('tab-scanner-btn');
       const tabDefectsBtn = document.getElementById('tab-defects-btn');
+      const tabCarDetailsBtn = document.getElementById('tab-car-details-btn');
 
       if (isAdmin) {
         if (tabSearchBtn) tabSearchBtn.style.display = '';
@@ -221,6 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tabUsersBtn) tabUsersBtn.style.display = '';
         if (tabScannerBtn) tabScannerBtn.style.display = '';
         if (tabDefectsBtn) tabDefectsBtn.style.display = '';
+        if (tabCarDetailsBtn) tabCarDetailsBtn.style.display = '';
       } else {
         // Regular Users: Show ONLY Image Scanner & Car Defects buttons at the top
         if (tabSearchBtn) tabSearchBtn.style.display = 'none';
@@ -229,6 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tabUsersBtn) tabUsersBtn.style.display = 'none';
         if (tabScannerBtn) tabScannerBtn.style.display = 'inline-flex';
         if (tabDefectsBtn) tabDefectsBtn.style.display = 'inline-flex';
+        if (tabCarDetailsBtn) tabCarDetailsBtn.style.display = 'inline-flex';
       }
     } else {
       loggedUserName.textContent = 'Not Logged In';
@@ -238,8 +296,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Helper to focus next element like Tab
+  window.focusNextElement = function(currentElement) {
+    const form = currentElement.closest('form');
+    if (!form) return;
+    const focusable = Array.from(form.querySelectorAll('input:not([type="hidden"]):not([disabled]):not([readonly]), select, textarea, button'));
+    const index = focusable.indexOf(currentElement);
+    if (index > -1 && index < focusable.length - 1) {
+      focusable[index + 1].focus();
+    }
+  };
+
   async function initApp() {
-    await fetchServerStatus();
+    setupAuthListeners();
+    const hash = window.location.hash.replace('#', '') || 'login';
+    showView(hash);
+
+    // Enter acts as Tab for fast keyboard data entry in the main form
+    const carDetailsForm = document.getElementById('car-details-form');
+    if (carDetailsForm) {
+      carDetailsForm.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          // If autocomplete dropdown is open, let its event listener handle it
+          const dropdowns = document.querySelectorAll('.custom-dropdown-menu');
+          for (let i = 0; i < dropdowns.length; i++) {
+            if (dropdowns[i].style.display === 'flex') return;
+          }
+
+          const target = e.target;
+          if (target.tagName === 'TEXTAREA') return; // let Enter do new line
+          if (target.tagName === 'BUTTON') return; // let button click fire
+          
+          e.preventDefault(); // Stop normal form submit or enter behavior
+          window.focusNextElement(target);
+        }
+      });
+    }
 
     if (!state.currentUser) {
       showView('login');
@@ -686,10 +778,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function normalizeKurdish(str) {
     if (!str) return '';
     return String(str)
+      .replace(/ـ/g, '')
       .replace(/[ەھه]/g, 'ه')
-      .replace(/[ییىێ]/g, 'ی')
+      .replace(/[ییيىێ]/g, 'ی')
       .replace(/[ۆوؤ]/g, 'و')
-      .replace(/[کک]/g, 'ک')
+      .replace(/[کكک]/g, 'ک')
       .replace(/[ڵل]/g, 'ل')
       .replace(/[ڕر]/g, 'ر')
       .toLowerCase()
@@ -1030,6 +1123,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('car-date_into')) {
     document.getElementById('car-date_into').value = new Date().toISOString().slice(0, 10);
   }
+  if (document.getElementById('cd-date_')) {
+    document.getElementById('cd-date_').value = new Date().toISOString().slice(0, 10);
+  }
 
   // ─── CUSTOM INTERACTIVE KURDISH SEARCHABLE COMBOBOX (PLET) ───
   const pletInput = document.getElementById('car-plet');
@@ -1129,6 +1225,230 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('pointerdown', (e) => {
       if (!e.target.closest('#plet-combobox-wrap')) {
         if (pletMenu) pletMenu.style.display = 'none';
+      }
+    });
+  }
+
+  // ─── CAR DETAILS TAB: CUSTOM INTERACTIVE KURDISH SEARCHABLE COMBOBOX (CD-PLET) ───
+  const cdPletInput = document.getElementById('cd-plet');
+  const cdPletMenu = document.getElementById('cd-plet-dropdown-menu');
+  const cdPletArrowBtn = document.getElementById('cd-plet-arrow-btn');
+
+  function renderCdPletMenu(filterText = '') {
+    if (!cdPletMenu) return;
+    const nQ = normalizeKurdish(filterText);
+    const filtered = filterText
+      ? pletList.filter(item => normalizeKurdish(item).includes(nQ))
+      : pletList;
+
+    if (filtered.length === 0) {
+      cdPletMenu.innerHTML = `<div class="custom-dropdown-empty">دەتوانیت هەر ئەم دەقە بنووسیت: "<strong>${escapeHtml(filterText)}</strong>"</div>`;
+    } else {
+      cdPletMenu.innerHTML = filtered.map(item => `
+        <div class="custom-dropdown-item" data-value="${escapeHtml(item)}">
+          <span>${escapeHtml(item)}</span>
+          <span style="font-size:0.75rem; color:var(--text-muted); opacity:0.5;">✓</span>
+        </div>
+      `).join('');
+    }
+    cdPletMenu.style.display = 'flex';
+  }
+
+  function selectCdPletItem(value) {
+    if (!cdPletInput) return;
+    cdPletInput.value = value;
+    if (cdPletMenu) cdPletMenu.style.display = 'none';
+  }
+
+  if (cdPletInput && cdPletMenu) {
+    cdPletInput.addEventListener('focus', () => renderCdPletMenu(cdPletInput.value.trim()));
+    cdPletInput.addEventListener('click', () => renderCdPletMenu(cdPletInput.value.trim()));
+
+    const debouncedRenderCdPletMenu = debounce((val) => renderCdPletMenu(val), 150);
+    ['input', 'keyup', 'paste', 'compositionend'].forEach(evt => {
+      cdPletInput.addEventListener(evt, () => {
+        debouncedRenderCdPletMenu(cdPletInput.value.trim());
+      });
+    });
+
+    if (cdPletArrowBtn) {
+      ['click', 'touchstart'].forEach(evt => {
+        cdPletArrowBtn.addEventListener(evt, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (cdPletMenu.style.display === 'flex') {
+            cdPletMenu.style.display = 'none';
+          } else {
+            cdPletInput.focus();
+            renderCdPletMenu('');
+          }
+        });
+      });
+    }
+
+    const handleCdItemSelect = (e) => {
+      const item = e.target.closest('.custom-dropdown-item');
+      if (item && item.dataset.value) {
+        e.preventDefault();
+        selectCdPletItem(item.dataset.value);
+      }
+    };
+
+    cdPletMenu.addEventListener('pointerdown', handleCdItemSelect);
+    cdPletMenu.addEventListener('touchstart', handleCdItemSelect, { passive: false });
+    cdPletMenu.addEventListener('click', handleCdItemSelect);
+
+    document.addEventListener('pointerdown', (e) => {
+      if (!e.target.closest('#cd-plet-combobox-wrap')) {
+        if (cdPletMenu) cdPletMenu.style.display = 'none';
+      }
+    });
+  }
+
+  // ─── GENERIC CUSTOM COMBOBOX SETUP ───
+  function setupCustomCombobox(idPrefix, dataList) {
+    const input = document.getElementById(idPrefix);
+    const menu = document.getElementById(`${idPrefix}-dropdown-menu`);
+    const arrowBtn = document.getElementById(`${idPrefix}-arrow-btn`);
+    const wrap = document.getElementById(`${idPrefix}-combobox-wrap`);
+
+    if (!input || !menu) return;
+
+    let highlightedIndex = -1;
+
+    function renderMenu(filterText = '') {
+      const nQ = normalizeKurdish(filterText);
+      const filtered = filterText
+        ? dataList.filter(item => normalizeKurdish(item).includes(nQ))
+        : dataList;
+
+      highlightedIndex = -1;
+
+      if (filtered.length === 0) {
+        menu.innerHTML = `<div class="custom-dropdown-empty">دەتوانیت هەر ئەم دەقە بنووسیت: "<strong>${escapeHtml(filterText)}</strong>"</div>`;
+      } else {
+        menu.innerHTML = filtered.map((item, index) => `
+          <div class="custom-dropdown-item" data-index="${index}" data-value="${escapeHtml(item)}">
+            <span>${escapeHtml(item)}</span>
+            <span style="font-size:0.75rem; color:var(--text-muted); opacity:0.5;">✓</span>
+          </div>
+        `).join('');
+      }
+      menu.style.display = 'flex';
+    }
+
+    function updateHighlight() {
+      const items = menu.querySelectorAll('.custom-dropdown-item');
+      items.forEach((item, index) => {
+        if (index === highlightedIndex) {
+          item.style.background = 'rgba(56, 189, 248, 0.2)';
+          item.scrollIntoView({ block: 'nearest' });
+        } else {
+          item.style.background = '';
+        }
+      });
+    }
+
+    input.addEventListener('focus', () => renderMenu(input.value.trim()));
+    input.addEventListener('click', () => renderMenu(input.value.trim()));
+
+    const debouncedRenderMenu = debounce((val) => renderMenu(val), 150);
+    ['input', 'paste', 'compositionend'].forEach(evt => {
+      input.addEventListener(evt, () => debouncedRenderMenu(input.value.trim()));
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (menu.style.display !== 'flex') {
+        // If closed, down arrow opens it
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          renderMenu(input.value.trim());
+        }
+        return;
+      }
+
+      const items = menu.querySelectorAll('.custom-dropdown-item');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        highlightedIndex = (highlightedIndex + 1) % items.length;
+        updateHighlight();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        highlightedIndex = (highlightedIndex - 1 + items.length) % items.length;
+        updateHighlight();
+      } else if (e.key === 'Enter') {
+        if (highlightedIndex >= 0 && items[highlightedIndex]) {
+          e.preventDefault(); // Stop normal enter tab traversal
+          input.value = items[highlightedIndex].dataset.value;
+          menu.style.display = 'none';
+          
+          // Manually focus next element
+          focusNextElement(input);
+        } else {
+          menu.style.display = 'none';
+        }
+      } else if (e.key === 'Escape') {
+        menu.style.display = 'none';
+      }
+    });
+
+    if (arrowBtn) {
+      ['click', 'touchstart'].forEach(evt => {
+        arrowBtn.addEventListener(evt, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (menu.style.display === 'flex') {
+            menu.style.display = 'none';
+          } else {
+            input.focus();
+            renderMenu('');
+          }
+        });
+      });
+    }
+
+    const handleSelect = (e) => {
+      const item = e.target.closest('.custom-dropdown-item');
+      if (item && item.dataset.value) {
+        e.preventDefault();
+        input.value = item.dataset.value;
+        menu.style.display = 'none';
+      }
+    };
+
+    menu.addEventListener('pointerdown', handleSelect);
+    menu.addEventListener('touchstart', handleSelect, { passive: false });
+    menu.addEventListener('click', handleSelect);
+
+    document.addEventListener('pointerdown', (e) => {
+      if (wrap && !e.target.closest(`#${wrap.id}`)) {
+        menu.style.display = 'none';
+      }
+    });
+  }
+
+  // Setup the new dynamic comboboxes with empty lists for now (to be populated from API later)
+  window.addressList = window.addressList || [];
+  window.colorList = window.colorList || [];
+  window.inspectorList = window.inspectorList || [];
+
+  setupCustomCombobox('cd-address', window.addressList);
+  setupCustomCombobox('cd-color', window.colorList);
+  setupCustomCombobox('cd-inspector', window.inspectorList);
+
+  // Auto-generate unique Barcode when Chassis is inputted
+  const cdChassis = document.getElementById('cd-chassis');
+  const cdBarcode = document.getElementById('cd-barcode');
+  if (cdChassis && cdBarcode) {
+    cdChassis.addEventListener('input', () => {
+      const chassisVal = cdChassis.value.trim().toUpperCase();
+      if (chassisVal.length > 0 && !cdBarcode.value) {
+        // Generate a unique ID (Timestamp base36 + Random base36)
+        const timePart = Date.now().toString(36).toUpperCase();
+        const randPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+        cdBarcode.value = `${chassisVal}-${timePart}-${randPart}`;
+      } else if (chassisVal.length === 0) {
+        cdBarcode.value = ''; // clear if they delete everything
       }
     });
   }
@@ -2205,6 +2525,41 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('loadDefectsBBHistory error:', e);
       savedBbTbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--accent-rose);">هەڵە لە هێنانی زانیارییەکان: ${escapeHtml(e.message)}</td></tr>`;
     }
+  }
+
+  // Expiry Date Logic
+  const cdInspectionResult = document.getElementById('cd-inspectionResult');
+  const cdExpiryDate = document.getElementById('cd-expiryDate');
+  const cdDate_ = document.getElementById('cd-date_');
+  
+  if (cdInspectionResult && cdExpiryDate && cdDate_) {
+    cdInspectionResult.addEventListener('change', () => {
+      const result = cdInspectionResult.value.trim();
+      const baseDateStr = cdDate_.value;
+      if (!result || !baseDateStr) {
+        cdExpiryDate.value = '';
+        return;
+      }
+      
+      const baseDate = new Date(baseDateStr);
+      let daysToAdd = 0;
+      
+      if (result.includes('دەرنەچووە')) {
+        daysToAdd = 30; // 30 days for fail
+      } else if (result.includes('دەرچووە')) {
+        daysToAdd = 365; // 365 days for pass
+      }
+      
+      if (daysToAdd > 0) {
+        baseDate.setDate(baseDate.getDate() + daysToAdd);
+        const yyyy = baseDate.getFullYear();
+        const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(baseDate.getDate()).padStart(2, '0');
+        cdExpiryDate.value = `${yyyy}-${mm}-${dd}`;
+      } else {
+        cdExpiryDate.value = '';
+      }
+    });
   }
 
   // Launch app
