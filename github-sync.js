@@ -16,7 +16,6 @@ const FILES_TO_SYNC = [
   'package.json',
   'config.json',
   'Procfile',
-  'railway.json',
   'render.yaml',
   'ecosystem.config.js',
   'start-service.bat',
