@@ -7,8 +7,8 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
-const REPO_OWNER = process.env.GITHUB_OWNER || 'Azh4aa';
-const REPO_NAME = process.env.GITHUB_REPO || 'car-management-system';
+const REPO_OWNER = process.env.GITHUB_OWNER || 'nazhadqq-ctrl';
+const REPO_NAME = process.env.GITHUB_REPO || 'image_-car';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.argv[2] || '';
 
 const FILES_TO_SYNC = [

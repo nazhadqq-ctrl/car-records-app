@@ -1454,51 +1454,74 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Car Form Submit
-  const carForm = document.getElementById('car-form');
-  carForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!state.currentUser) {
-      alert('Session expired. Please log in again.');
-      showView('login');
-      return;
-    }
-
-    const payload = {
-      carNo: document.getElementById('car-carNo').value.trim(),
-      bash: document.getElementById('car-bash').value.trim(),
-      plet: document.getElementById('car-plet').value.trim(),
-      pic: state.uploadedImageBase64,
-      date_into: document.getElementById('car-date_into') ? document.getElementById('car-date_into').value : new Date().toISOString().slice(0, 10),
-      Nnote: document.getElementById('car-Nnote') ? document.getElementById('car-Nnote').value.trim() : null,
-      uuser: state.currentUser.Username,
-      bar_: capturedGPS ? (capturedGPS.placeName || `GPS: ${capturedGPS.lat}, ${capturedGPS.lng}`) : null,
-      N_pshknin: document.getElementById('car-N_pshknin') ? document.getElementById('car-N_pshknin').value.trim() : null
-    };
-
-    try {
-      const res = await fetch('/api/car-records', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        alert('Data and Geotagged Photo uploaded directly to SQL Server CAR_ table!');
-        state.lastCarRecord = payload;
-        carForm.reset();
-        state.uploadedImageBase64 = null;
-        previewWrap.style.display = 'none';
-        openCameraBtn.style.display = 'flex';
-        document.getElementById('car-date_into').value = new Date().toISOString().slice(0, 10);
-        loadCarRecords();
-      } else {
-        alert('Upload Error: ' + data.error);
+  const carDetailsForm = document.getElementById('car-details-form');
+  if (carDetailsForm) {
+    carDetailsForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!state.currentUser) {
+        alert('Session expired. Please log in again.');
+        showView('login');
+        return;
       }
-    } catch (err) {
-      alert('Network / Server Error: ' + err.message);
-    }
-  });
+
+      const payload = {
+        carNo: document.getElementById('cd-carNo').value.trim(),
+        bash: document.getElementById('cd-bash').value.trim(),
+        plet: document.getElementById('cd-plet').value.trim(),
+        pic: state.uploadedImageBase64 || null,
+        date_into: document.getElementById('cd-date_') ? document.getElementById('cd-date_').value : new Date().toISOString().slice(0, 10),
+        Nnote: document.getElementById('cd-notes') ? document.getElementById('cd-notes').value.trim() : null,
+        uuser: state.currentUser.Username,
+        bar_: capturedGPS ? (capturedGPS.placeName || `GPS: ${capturedGPS.lat}, ${capturedGPS.lng}`) : null,
+        N_pshknin: document.getElementById('cd-N_pshknin') ? document.getElementById('cd-N_pshknin').value.trim() : null,
+        driver_name: document.getElementById('cd-driverName') ? document.getElementById('cd-driverName').value.trim() : null,
+        mobile: document.getElementById('cd-mobile') ? document.getElementById('cd-mobile').value.trim() : null,
+        address: document.getElementById('cd-address') ? document.getElementById('cd-address').value.trim() : null,
+        chassis: document.getElementById('cd-chassis') ? document.getElementById('cd-chassis').value.trim() : null,
+        color: document.getElementById('cd-color') ? document.getElementById('cd-color').value.trim() : null,
+        gear: document.getElementById('cd-gearType') ? document.getElementById('cd-gearType').value.trim() : null,
+        fuel: document.getElementById('cd-fuelType') ? document.getElementById('cd-fuelType').value.trim() : null,
+        pistons: document.getElementById('cd-pistons') ? document.getElementById('cd-pistons').value.trim() : null,
+        inspector_name: document.getElementById('cd-inspector') ? document.getElementById('cd-inspector').value.trim() : null,
+        price: document.getElementById('cd-inspectionPrice') ? document.getElementById('cd-inspectionPrice').value.trim() : null,
+        result: document.getElementById('cd-inspectionResult') ? document.getElementById('cd-inspectionResult').value.trim() : null,
+        expire_date: document.getElementById('cd-expiryDate') ? document.getElementById('cd-expiryDate').value.trim() : null,
+        lab_name: document.getElementById('cd-labName') ? document.getElementById('cd-labName').value.trim() : null
+      };
+
+      try {
+        // Use authFetch to pass the token automatically if we have it
+        const res = await authFetch('/api/car-records', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          alert('زانیارییەکان بە سەرکەوتوویی پاشەکەوت کران!');
+          state.lastCarRecord = payload;
+          carDetailsForm.reset();
+          state.uploadedImageBase64 = null;
+          
+          const previewWrap = document.getElementById('capture-preview-wrap');
+          const openCameraBtn = document.getElementById('open-camera-btn');
+          if (previewWrap) previewWrap.style.display = 'none';
+          if (openCameraBtn) openCameraBtn.style.display = 'flex';
+          
+          // Re-initialize default dates
+          const cdDateEl = document.getElementById('cd-date_');
+          if (cdDateEl) cdDateEl.value = new Date().toISOString().slice(0, 10);
+          
+          loadCarRecords();
+        } else {
+          alert('هەڵە لە پاشەکەوتکردن: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('هەڵەی ڕاژەکار یان هێڵ: ' + err.message);
+      }
+    });
+  }
 
   async function loadCarRecords() {
     const tbody = document.getElementById('car-records-tbody');

@@ -133,7 +133,7 @@ function saveLocalConfig() {
 
 // In-Memory Fallback App Users Store
 let inMemoryImageUsers = [
-  { id: 1, User_: 'admin', password: process.env.ADMIN_PASSWORD || '$$$$$$$$', permetion: 'Admin', on_off: 'on' }
+  { id: 1, User_: 'admin', password: process.env.ADMIN_PASSWORD || 'ChangeMeInDotEnv123', permetion: 'Admin', on_off: 'on' }
 ];
 
 // In-Memory Fallback CAR_ Table Records Store
@@ -228,8 +228,51 @@ async function initSqlServer(config) {
               [Nnote] [nchar](100) NULL,
               [uuser] [nvarchar](50) NULL,
               [bar_] [nvarchar](50) NULL,
-              [N_pshknin] [nvarchar](50) NULL
+              [N_pshknin] [nvarchar](50) NULL,
+              [driver_name] [nvarchar](100) NULL,
+              [mobile] [nvarchar](20) NULL,
+              [address] [nvarchar](200) NULL,
+              [chassis] [nvarchar](50) NULL,
+              [color] [nvarchar](50) NULL,
+              [gear] [nvarchar](50) NULL,
+              [fuel] [nvarchar](50) NULL,
+              [pistons] [nvarchar](50) NULL,
+              [inspector_name] [nvarchar](100) NULL,
+              [price] [nvarchar](50) NULL,
+              [result] [nvarchar](50) NULL,
+              [expire_date] [date] NULL,
+              [lab_name] [nvarchar](100) NULL
           );
+      END
+      ELSE
+      BEGIN
+          -- Add new columns to existing table safely if they don't exist
+          IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.CAR_') AND name = 'driver_name')
+              ALTER TABLE dbo.CAR_ ADD [driver_name] [nvarchar](100) NULL;
+          IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.CAR_') AND name = 'mobile')
+              ALTER TABLE dbo.CAR_ ADD [mobile] [nvarchar](20) NULL;
+          IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.CAR_') AND name = 'address')
+              ALTER TABLE dbo.CAR_ ADD [address] [nvarchar](200) NULL;
+          IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.CAR_') AND name = 'chassis')
+              ALTER TABLE dbo.CAR_ ADD [chassis] [nvarchar](50) NULL;
+          IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.CAR_') AND name = 'color')
+              ALTER TABLE dbo.CAR_ ADD [color] [nvarchar](50) NULL;
+          IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.CAR_') AND name = 'gear')
+              ALTER TABLE dbo.CAR_ ADD [gear] [nvarchar](50) NULL;
+          IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.CAR_') AND name = 'fuel')
+              ALTER TABLE dbo.CAR_ ADD [fuel] [nvarchar](50) NULL;
+          IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.CAR_') AND name = 'pistons')
+              ALTER TABLE dbo.CAR_ ADD [pistons] [nvarchar](50) NULL;
+          IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.CAR_') AND name = 'inspector_name')
+              ALTER TABLE dbo.CAR_ ADD [inspector_name] [nvarchar](100) NULL;
+          IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.CAR_') AND name = 'price')
+              ALTER TABLE dbo.CAR_ ADD [price] [nvarchar](50) NULL;
+          IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.CAR_') AND name = 'result')
+              ALTER TABLE dbo.CAR_ ADD [result] [nvarchar](50) NULL;
+          IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.CAR_') AND name = 'expire_date')
+              ALTER TABLE dbo.CAR_ ADD [expire_date] [date] NULL;
+          IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.CAR_') AND name = 'lab_name')
+              ALTER TABLE dbo.CAR_ ADD [lab_name] [nvarchar](100) NULL;
       END
 
       IF OBJECT_ID(N'dbo.image_user', N'U') IS NULL
@@ -1119,7 +1162,11 @@ const server = http.createServer((req, res) => {
       }
 
       try {
-        const { carNo, bash, plet, pic, date_into, Nnote, uuser, bar_, N_pshknin } = data;
+        const { 
+          carNo, bash, plet, pic, date_into, Nnote, uuser, bar_, N_pshknin,
+          driver_name, mobile, address, chassis, color, gear, fuel, pistons,
+          inspector_name, price, result, expire_date, lab_name
+        } = data;
 
         if (isSqlServerConnected && sql) {
           let picBuffer = null;
@@ -1138,29 +1185,49 @@ const server = http.createServer((req, res) => {
           request.input('uuser', sql.NVarChar(50), uuser ? String(uuser).trim().slice(0, 50) : 'Operator');
           request.input('bar_', sql.NVarChar(255), bar_ ? String(bar_).trim().slice(0, 255) : null);
           request.input('N_pshknin', sql.NVarChar(50), N_pshknin ? String(N_pshknin).trim().slice(0, 50) : null);
+          
+          request.input('driver_name', sql.NVarChar(100), driver_name ? String(driver_name).trim().slice(0, 100) : null);
+          request.input('mobile', sql.NVarChar(20), mobile ? String(mobile).trim().slice(0, 20) : null);
+          request.input('address', sql.NVarChar(200), address ? String(address).trim().slice(0, 200) : null);
+          request.input('chassis', sql.NVarChar(50), chassis ? String(chassis).trim().slice(0, 50) : null);
+          request.input('color', sql.NVarChar(50), color ? String(color).trim().slice(0, 50) : null);
+          request.input('gear', sql.NVarChar(50), gear ? String(gear).trim().slice(0, 50) : null);
+          request.input('fuel', sql.NVarChar(50), fuel ? String(fuel).trim().slice(0, 50) : null);
+          request.input('pistons', sql.NVarChar(50), pistons ? String(pistons).trim().slice(0, 50) : null);
+          request.input('inspector_name', sql.NVarChar(100), inspector_name ? String(inspector_name).trim().slice(0, 100) : null);
+          request.input('price', sql.NVarChar(50), price ? String(price).trim().slice(0, 50) : null);
+          request.input('result', sql.NVarChar(50), result ? String(result).trim().slice(0, 50) : null);
+          request.input('expire_date', sql.Date, expire_date ? expire_date : null);
+          request.input('lab_name', sql.NVarChar(100), lab_name ? String(lab_name).trim().slice(0, 100) : null);
 
           await request.query(`
-            INSERT INTO dbo.CAR_ (carNo, bash, plet, pic, date_into, Nnote, uuser, bar_, N_pshknin)
-            VALUES (@carNo, @bash, @plet, @pic, @date_into, @Nnote, @uuser, @bar_, @N_pshknin)
+            INSERT INTO dbo.CAR_ (
+              carNo, bash, plet, pic, date_into, Nnote, uuser, bar_, N_pshknin,
+              driver_name, mobile, address, chassis, color, gear, fuel, pistons,
+              inspector_name, price, result, expire_date, lab_name
+            )
+            VALUES (
+              @carNo, @bash, @plet, @pic, @date_into, @Nnote, @uuser, @bar_, @N_pshknin,
+              @driver_name, @mobile, @address, @chassis, @color, @gear, @fuel, @pistons,
+              @inspector_name, @price, @result, @expire_date, @lab_name
+            )
           `);
         } else {
+          // In-memory fallback
           carRecords.unshift({
             id: carRecords.length + 1,
             carNo: carNo ? String(carNo).trim().slice(0, 8) : null,
-            bash,
-            plet,
-            pic,
-            date_into: date_into || new Date().toISOString().slice(0, 10),
-            Nnote,
-            uuser: uuser || 'Operator',
-            bar_: bar_ || null,
-            N_pshknin
+            bash, plet, pic, date_into: date_into || new Date().toISOString().slice(0, 10),
+            Nnote, uuser: uuser || 'Operator', bar_: bar_ || null, N_pshknin,
+            driver_name, mobile, address, chassis, color, gear, fuel, pistons,
+            inspector_name, price, result, expire_date, lab_name
           });
         }
 
         res.writeHead(201, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({ success: true, message: 'Record inserted into CAR_ table successfully!' }));
       } catch (insertErr) {
+        console.error('Error inserting into CAR_', insertErr);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({ error: 'A database error occurred' }));
       }
