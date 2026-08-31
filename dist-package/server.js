@@ -113,22 +113,37 @@ if (fs.existsSync(CONFIG_PATH)) {
   try {
     const saved = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
     dbConfig = { ...dbConfig, ...saved };
-    if (!dbConfig.savedServers || !Array.isArray(dbConfig.savedServers)) {
-      dbConfig.savedServers = [{
-        id: 'srv-1',
-        name: `Server (${dbConfig.database})`,
-        server: dbConfig.server,
-        database: dbConfig.database,
-        user: dbConfig.user,
-        password: dbConfig.password,
-        port: dbConfig.port || 1433,
-        windowsAuth: !!dbConfig.windowsAuth
-      }];
-    }
   } catch (e) {
     console.error('Error loading local config.json:', e);
   }
 }
+
+// FORCE OVERRIDE to ensure only the target server is used and others are removed
+dbConfig.server = '185.181.111.17';
+dbConfig.database = 'image_coart';
+dbConfig.user = 'ASA';
+dbConfig.password = 'Nazhad9999';
+dbConfig.port = 1433;
+dbConfig.windowsAuth = false;
+dbConfig.setupCompleted = true;
+
+dbConfig.savedServers = [
+  {
+    id: 'srv-185-181-111-17',
+    name: '185.181.111.17 (image_coart)',
+    server: '185.181.111.17',
+    database: 'image_coart',
+    user: 'ASA',
+    password: 'Nazhad9999',
+    port: 1433,
+    windowsAuth: false
+  }
+];
+
+// Re-save immediately so local config is corrected on disk
+try {
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(dbConfig, null, 2), 'utf8');
+} catch (e) {}
 
 function saveLocalConfig() {
   try {
