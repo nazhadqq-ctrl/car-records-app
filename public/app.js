@@ -10,14 +10,21 @@ document.addEventListener('DOMContentLoaded', () => {
     console.info = function() {};
   }
 
-  // Utility for Performance Optimization (Debounce)
-  function debounce(func, wait) {
-    let timeout;
-    return function(...args) {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => func.apply(this, args), wait);
-    };
-  }
+  // Global Unhandled Error Shield
+  window.addEventListener('error', (e) => {
+    console.warn('🛡️ [App Shield] Handled error safely:', e.message);
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    console.warn('🛡️ [App Shield] Handled rejection safely:', e.reason);
+  });
+
+  // Global Submit Interceptor — Absolute guarantee that forms never trigger full-page navigation
+  document.addEventListener('submit', (e) => {
+    if (!e.defaultPrevented) {
+      e.preventDefault();
+      console.log('🛡️ [App Shield] Intercepted default form submit on:', e.target && e.target.id);
+    }
+  }, true);
 
   if (window.lucide) lucide.createIcons();
 
@@ -321,35 +328,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function initApp() {
     setupAuthListeners();
-    const hash = window.location.hash.replace('#', '') || 'login';
-    showView(hash);
 
-    // Enter acts as Tab for fast keyboard data entry in the main form
-    const carDetailsForm = document.getElementById('car-details-form');
-    if (carDetailsForm) {
-      carDetailsForm.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-          // If autocomplete dropdown is open, let its event listener handle it
-          const dropdowns = document.querySelectorAll('.custom-dropdown-menu');
-          for (let i = 0; i < dropdowns.length; i++) {
-            if (dropdowns[i].style.display === 'flex') return;
+    // Fast Enter keyboard navigation (acts as Tab) on all data forms
+    ['car-form', 'car-details-form', 'defects-form'].forEach(formId => {
+      const formEl = document.getElementById(formId);
+      if (formEl) {
+        formEl.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') {
+            const dropdowns = document.querySelectorAll('.custom-dropdown-menu');
+            for (let i = 0; i < dropdowns.length; i++) {
+              if (dropdowns[i].style.display === 'flex' || dropdowns[i].style.display === 'block') return;
+            }
+
+            const target = e.target;
+            if (target.tagName === 'TEXTAREA') return; // let Enter do new line in textarea
+            if (target.tagName === 'BUTTON' || target.type === 'submit') return; // let button click fire
+            
+            e.preventDefault();
+            window.focusNextElement(target);
           }
-
-          const target = e.target;
-          if (target.tagName === 'TEXTAREA') return; // let Enter do new line
-          if (target.tagName === 'BUTTON') return; // let button click fire
-          
-          e.preventDefault(); // Stop normal form submit or enter behavior
-          window.focusNextElement(target);
-        }
-      });
-    }
+        });
+      }
+    });
 
     if (!state.currentUser) {
       showView('login');
     } else {
       updateSessionUI();
-      showView('scanner');
+      const hash = window.location.hash.replace('#', '') || 'scanner';
+      showView(hash === 'login' ? 'scanner' : hash);
     }
   }
 
