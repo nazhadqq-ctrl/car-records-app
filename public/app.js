@@ -831,6 +831,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Enter') loadSearchResults(searchInput.value.trim());
   });
 
+  // ─── UTILITY: DEBOUNCE ───
+  function debounce(fn, delay) {
+    let timer;
+    return function(...args) {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn.apply(this, args), delay);
+    };
+  }
+
   function normalizeKurdish(str) {
     if (!str) return '';
     return String(str)
