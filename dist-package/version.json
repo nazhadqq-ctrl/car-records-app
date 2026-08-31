@@ -1,7 +1,7 @@
 {
-  "version": "1.2.5",
-  "build": 150,
+  "version": "1.2.6",
+  "build": 151,
   "developer": "نەژاد قادر محمد",
-  "description": "سیستەمی تۆماری تاقیگەکان — چارەسەری کۆتایی کێشەی پاشەکەوتکردن بە گۆڕینی دوگمە بۆ type=button و ڕێگری تەواو لە کەش",
-  "lastSha": "final-save-button-type-button"
+  "description": "سیستەمی تۆماری تاقیگەکان — جێگیرکردنی ئای پی بۆ 185.181.111.17",
+  "lastSha": "force-server-ip"
 }
