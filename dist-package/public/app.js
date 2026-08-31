@@ -60,8 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   const state = {
-    currentUser: JSON.parse(sessionStorage.getItem('car_app_user')) || null,
-    sessionToken: sessionStorage.getItem('car_app_token') || '',
+    currentUser: JSON.parse(sessionStorage.getItem('car_app_user') || localStorage.getItem('car_app_user') || 'null'),
+    sessionToken: sessionStorage.getItem('car_app_token') || localStorage.getItem('car_app_token') || '',
     uploadedImageBase64: null,
     serverStatus: null,
     activeTab: 'scanner',
@@ -373,6 +373,8 @@ document.addEventListener('DOMContentLoaded', () => {
         state.sessionToken = data.token || '';
         sessionStorage.setItem('car_app_user', JSON.stringify(data.user));
         sessionStorage.setItem('car_app_token', data.token || '');
+        localStorage.setItem('car_app_user', JSON.stringify(data.user));
+        localStorage.setItem('car_app_token', data.token || '');
         updateSessionUI();
         await fetchServerStatus();
         showView('scanner');
@@ -390,6 +392,8 @@ document.addEventListener('DOMContentLoaded', () => {
     state.sessionToken = '';
     sessionStorage.removeItem('car_app_user');
     sessionStorage.removeItem('car_app_token');
+    localStorage.removeItem('car_app_user');
+    localStorage.removeItem('car_app_token');
     updateSessionUI();
   });
 
@@ -1498,16 +1502,95 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Car Form Submit
+  // ─── 4. CAR SCANNER FORM SUBMIT (#car-form — تۆمارکردنی زانیاری و وێنە) ───
+  const scannerCarForm = document.getElementById('car-form');
+  if (scannerCarForm) {
+    scannerCarForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const carNoInput = document.getElementById('car-carNo');
+      const bashInput = document.getElementById('car-bash');
+      const pletInput = document.getElementById('car-plet');
+      const dateIntoInput = document.getElementById('car-date_into');
+      const notesInput = document.getElementById('car-notes');
+
+      const carNo = carNoInput ? carNoInput.value.trim() : '';
+      const bash = bashInput ? bashInput.value.trim() : '';
+      const plet = pletInput ? pletInput.value.trim() : '';
+      const date_into = (dateIntoInput && dateIntoInput.value) ? dateIntoInput.value : new Date().toISOString().slice(0, 10);
+      const Nnote = (notesInput && notesInput.value) ? notesInput.value.trim() : null;
+
+      if (!carNo || !plet) {
+        alert('⚠️ تکایە ژمارەی ئۆتۆمبێل و ناوی پارێزگا بنووسە!');
+        return;
+      }
+
+      const payload = {
+        carNo,
+        bash,
+        plet,
+        pic: state.uploadedImageBase64 || null,
+        date_into,
+        Nnote,
+        uuser: (state.currentUser && state.currentUser.Username) ? state.currentUser.Username : 'کارمەند',
+        bar_: capturedGPS ? (capturedGPS.placeName || `GPS: ${capturedGPS.lat}, ${capturedGPS.lng}`) : null
+      };
+
+      const submitBtn = scannerCarForm.querySelector('button[type="submit"]');
+      const origBtnContent = submitBtn ? submitBtn.innerHTML : '';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> <span>⏳ کەمێک چاوەڕوانبە... پاشەکەوتکردن</span>';
+        if (window.lucide) lucide.createIcons();
+      }
+
+      try {
+        const res = await authFetch('/api/car-records', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          alert('✅ زانیاری و وێنەی ئۆتۆمبێل بە سەرکەوتوویی لە SQL Server پاشەکەوت کرا!');
+          state.lastCarRecord = payload;
+
+          // Clear inputs
+          if (carNoInput) carNoInput.value = '';
+          if (bashInput) bashInput.value = '';
+          if (pletInput) pletInput.value = '';
+          if (notesInput) notesInput.value = '';
+
+          // Reset photo & camera preview
+          state.uploadedImageBase64 = null;
+          const previewWrap = document.getElementById('capture-preview-wrap');
+          const openCameraBtn = document.getElementById('open-camera-btn');
+          if (previewWrap) previewWrap.style.display = 'none';
+          if (openCameraBtn) openCameraBtn.style.display = 'flex';
+
+          // Refresh today's table
+          loadCarRecords();
+        } else {
+          alert('⚠️ هەڵە لە پاشەکەوتکردن: ' + (data.error || 'هەڵەیەکی نەزانراو لە ڕاژەکار'));
+        }
+      } catch (err) {
+        alert('❌ هەڵەی پەیوەندی بە سێرڤەر: ' + err.message);
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = origBtnContent;
+          if (window.lucide) lucide.createIcons();
+        }
+      }
+    });
+  }
+
+  // ─── CAR DETAILS FORM SUBMIT (#car-details-form — ئەنجام و وردەکاری ئۆتۆمبێل) ───
   const carDetailsForm = document.getElementById('car-details-form');
   if (carDetailsForm) {
     carDetailsForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!state.currentUser) {
-        alert('Session expired. Please log in again.');
-        showView('login');
-        return;
-      }
 
       const payload = {
         carNo: document.getElementById('cd-carNo').value.trim(),
@@ -1516,7 +1599,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pic: state.uploadedImageBase64 || null,
         date_into: document.getElementById('cd-date_') ? document.getElementById('cd-date_').value : new Date().toISOString().slice(0, 10),
         Nnote: document.getElementById('cd-notes') ? document.getElementById('cd-notes').value.trim() : null,
-        uuser: state.currentUser.Username,
+        uuser: (state.currentUser && state.currentUser.Username) ? state.currentUser.Username : 'کارمەند',
         bar_: capturedGPS ? (capturedGPS.placeName || `GPS: ${capturedGPS.lat}, ${capturedGPS.lng}`) : null,
         N_pshknin: document.getElementById('cd-N_pshknin') ? document.getElementById('cd-N_pshknin').value.trim() : null,
         driver_name: document.getElementById('cd-driverName') ? document.getElementById('cd-driverName').value.trim() : null,
@@ -1534,8 +1617,15 @@ document.addEventListener('DOMContentLoaded', () => {
         lab_name: document.getElementById('cd-labName') ? document.getElementById('cd-labName').value.trim() : null
       };
 
+      const submitBtn = carDetailsForm.querySelector('button[type="submit"]');
+      const origBtnContent = submitBtn ? submitBtn.innerHTML : '';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> <span>⏳ کەمێک چاوەڕوانبە... پاشەکەوتکردن</span>';
+        if (window.lucide) lucide.createIcons();
+      }
+
       try {
-        // Use authFetch to pass the token automatically if we have it
         const res = await authFetch('/api/car-records', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1544,7 +1634,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
 
         if (data.success) {
-          alert('زانیارییەکان بە سەرکەوتوویی پاشەکەوت کران!');
+          alert('✅ زانیارییەکان بە سەرکەوتوویی پاشەکەوت کران!');
           state.lastCarRecord = payload;
           carDetailsForm.reset();
           state.uploadedImageBase64 = null;
@@ -1560,10 +1650,16 @@ document.addEventListener('DOMContentLoaded', () => {
           
           loadCarRecords();
         } else {
-          alert('هەڵە لە پاشەکەوتکردن: ' + (data.error || 'Unknown error'));
+          alert('⚠️ هەڵە لە پاشەکەوتکردن: ' + (data.error || 'Unknown error'));
         }
       } catch (err) {
-        alert('هەڵەی ڕاژەکار یان هێڵ: ' + err.message);
+        alert('❌ هەڵەی ڕاژەکار یان هێڵ: ' + err.message);
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = origBtnContent;
+          if (window.lucide) lucide.createIcons();
+        }
       }
     });
   }
