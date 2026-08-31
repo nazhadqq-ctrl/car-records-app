@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="تۆمارکردنی زانیاری و وێنەی ئۆتۆمبێل — SQL Server">
   <title>تۆمارکردنی زانیاری و وێنەی ئۆتۆمبێل</title>
-  <link rel="stylesheet" href="styles.css?v=4">
+  <link rel="stylesheet" href="styles.css?v=25">
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
@@ -57,6 +57,14 @@
       <button type="button" class="nav-tab-btn" data-tab="car-details" id="tab-car-details-btn">
         <i data-lucide="file-text"></i>
         <span>ئەنجام و وردەکاری ئۆتۆمبێل</span>
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="system-update" id="tab-update-btn" style="border-color: rgba(34, 211, 238, 0.4); color: var(--accent-cyan);">
+        <i data-lucide="refresh-cw"></i>
+        <span>🔄 نوێکردنەوەی سیستەم</span>
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="about-me" id="tab-about-btn" style="border-color: rgba(129, 140, 248, 0.4); color: var(--primary);">
+        <i data-lucide="user-check"></i>
+        <span>👤 دەربارەی من</span>
       </button>
     </nav>
 
@@ -908,8 +916,226 @@
       </div>
     </section>
 
+    <!-- TAB 7: SYSTEM SOFTWARE AUTO-UPDATER -->
+    <section id="view-system-update" class="page-view">
+      <div class="glass-card" style="border-color: rgba(34, 211, 238, 0.35);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
+          <div>
+            <h2 class="card-title" style="font-size:1.3rem; margin-bottom:0.3rem;">
+              <i data-lucide="refresh-cw" style="color: var(--accent-cyan); width:26px; height:26px;"></i>
+              <span>نوێکردنەوەی سۆفتوێری بەرنامە (Auto Updater)</span>
+            </h2>
+            <p class="card-subtitle" style="margin:0;">پشکنین و نوێکردنەوەی بەرنامەکە بە یەک کلیک لە دوورەوە بێ پێویستی بە ئەنی دیسک یان دەستکاری فایلەکان</p>
+          </div>
+          <div style="display:flex; align-items:center; gap:0.5rem; background:rgba(6,9,16,0.7); padding:0.5rem 1rem; border-radius:10px; border:1px solid var(--border-color);">
+            <span style="font-size:0.78rem; color:var(--text-muted);">وەشانی ئێستا:</span>
+            <span id="update-page-version-badge" style="font-weight:800; color:var(--accent-cyan); font-size:1rem;">v1.1.0</span>
+          </div>
+        </div>
+
+        <!-- Status and Action Control Box -->
+        <div style="background: rgba(12, 19, 36, 0.9); border: 1.5px solid rgba(255,255,255,0.08); border-radius: var(--radius-md); padding: 2rem 1.5rem; margin-bottom: 1.5rem; text-align: center;">
+          <div style="width: 72px; height: 72px; margin: 0 auto 1.25rem; border-radius: 50%; background: rgba(34, 211, 238, 0.1); border: 2px solid rgba(34, 211, 238, 0.4); display: flex; align-items: center; justify-content: center;">
+            <i data-lucide="refresh-cw" id="update-center-icon" style="width: 32px; height: 32px; color: var(--accent-cyan);"></i>
+          </div>
+
+          <h3 id="update-main-status-title" style="font-size: 1.2rem; font-weight: 800; margin-bottom: 0.5rem; color: #fff;">
+            ئایا دەتەوێت پشکنین بۆ نوێترین وەشانی بەرنامەکە بکەیت؟
+          </h3>
+          <p id="update-main-status-desc" style="font-size: 0.88rem; color: var(--text-muted); max-width: 600px; margin: 0 auto 1.5rem; line-height: 1.6;">
+            کاتێک کلیک لەسەر دوگمەی خوارەوە دەکەیت، بەرنامەکە پەیوەندی بە سێرڤەری سەرەکی دەکات و ئەگەر هەر گۆڕانکاری یان باشترکردنێک هەبێت خۆکارانە دایدەبەزێنێت.
+          </p>
+
+          <!-- Buttons Row -->
+          <div style="display: flex; justify-content: center; gap: 0.85rem; flex-wrap: wrap;" id="update-buttons-container">
+            <button type="button" id="btn-start-system-update" class="btn" style="background: linear-gradient(135deg, #0284c7, #0369a1); color: #fff; font-weight: 800; font-size: 1rem; padding: 0.85rem 2rem; box-shadow: 0 4px 20px rgba(2, 132, 199, 0.4); min-width: 240px;">
+              <i data-lucide="cloud-download"></i>
+              <span>🚀 پشکنین و نوێکردنەوەی ئێستا</span>
+            </button>
+
+            <button type="button" id="btn-force-system-update" class="btn btn-secondary" style="font-size: 0.88rem; padding: 0.85rem 1.4rem;">
+              <i data-lucide="download"></i>
+              <span>⚡ دووبارە داگرتنەوەی هەموو فایلەکان</span>
+            </button>
+          </div>
+
+          <!-- Interactive Progress & Alert Box -->
+          <div id="update-feedback-box" style="display: none; margin-top: 1.5rem; padding: 1.2rem; border-radius: var(--radius-sm); font-size: 0.92rem; text-align: right; direction: rtl; line-height: 1.7;">
+          </div>
+        </div>
+
+        <!-- Information & Instructions for Operators -->
+        <div style="background: rgba(251, 191, 36, 0.06); border: 1px solid rgba(251, 191, 36, 0.25); border-radius: var(--radius-sm); padding: 1.1rem 1.35rem;">
+          <div style="display:flex; align-items:center; gap:0.5rem; font-weight:700; color:var(--accent-amber); font-size:0.92rem; margin-bottom:0.4rem;">
+            <i data-lucide="info" style="width:16px;height:16px;"></i>
+            <span>ڕێنمایی بۆ بەکارهێنەران و کارمەندان:</span>
+          </div>
+          <ul style="font-size:0.84rem; color:var(--text-label); line-height:1.75; padding-right:1.2rem; margin:0;">
+            <li>هەر کاتێک بەڕێوەبەر ئاگاداری کردیتەوە کە گۆڕانکاری نوێ کراوە، تەنها وەرە ئەم بەشە و دوگمەی (🚀 پشکنین و نوێکردنەوە) دابگرە.</li>
+            <li>لەکاتی ئەپدەیتدا کارەکان بۆ چەند چرکەیەک دەوەستێت بۆ داگرتن و جێبەجێکردنی فایلە نوێیەکان، پاشان بەرنامەکە خۆی نوێ دەبێتەوە.</li>
+            <li>پێویست بە هیچ فەرمانێک، هیچ بەرنامەیەکی دەرەکی، یان AnyDesk ناکات.</li>
+          </ul>
+        <!-- About System Info Card -->
+        <div class="about-creator-card">
+          <div style="width: 54px; height: 54px; border-radius: 14px; background: linear-gradient(135deg, #0284c7, #6366f1); display: flex; align-items: center; justify-content: center; font-size: 1.35rem; color: #fff; font-weight: 900; box-shadow: 0 4px 16px rgba(2, 132, 199, 0.4); border: 2px solid rgba(255,255,255,0.2);">
+            NQ
+          </div>
+          <div style="direction: rtl; text-align: right;">
+            <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem; flex-wrap:wrap;">
+              <span style="font-size:1.05rem; font-weight:800; color:#fff;">سیستەمی تۆماری تاقیگەکان (Car Management System)</span>
+              <span style="font-size:0.72rem; background:rgba(34,211,238,0.15); border:1px solid rgba(34,211,238,0.4); color:var(--accent-cyan); padding:0.15rem 0.55rem; border-radius:999px; font-weight:700;">وەشانی فەرمی</span>
+            </div>
+            <p style="margin:0; font-size:0.85rem; color:var(--text-label); line-height:1.6;">
+              دیزاین، ئەندازیاری داتابەیس و گەشەپێدانی تەواو: <strong style="color:var(--accent-cyan); font-weight:800;">نەژاد قادر محمد</strong>
+            </p>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:0.25rem; align-items:center;">
+            <div style="font-size:0.72rem; color:var(--text-muted);">بڕوانامەی سیستەم</div>
+            <div style="font-size:0.8rem; font-weight:800; color:#34d399; display:flex; align-items:center; gap:0.3rem;">
+              <span>Verified Developer</span>
+              <i data-lucide="badge-check" style="width:16px;height:16px;"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: ABOUT ME (دەربارەی من — نەژاد قادر محمد) -->
+    <section id="view-about-me" class="page-view">
+      <div class="about-me-container">
+        <!-- Hero Profile Card -->
+        <div class="about-me-hero-card">
+          <!-- Profile Avatar -->
+          <div class="about-avatar-box">
+            <img src="profile-avatar.jpg" alt="نەژاد قادر محمد" class="about-avatar-img" onerror="this.onerror=null; this.src='app-icon.png';">
+            <div class="about-avatar-status">
+              <span>چالاک</span>
+            </div>
+          </div>
+
+          <!-- Main Info -->
+          <div class="about-info-main">
+            <div class="about-name-row">
+              <h1 class="about-main-name">نەژاد قادر محمد</h1>
+              <div class="about-badge-verified">
+                <i data-lucide="badge-check" style="width: 15px; height: 15px;"></i>
+                <span>پەرەپێدەر و ئەندازیاری سیستم</span>
+              </div>
+            </div>
+
+            <div class="about-role-primary">
+              <i data-lucide="building-2" style="width: 20px; height: 20px; color: #fbbf24; flex-shrink: 0;"></i>
+              <span>کارمەندی پێشکەوتووی هاتووچۆی سلێمانی</span>
+            </div>
+
+            <div class="about-role-secondary">
+              <i data-lucide="cpu" style="width: 18px; height: 18px; color: var(--accent-cyan); flex-shrink: 0;"></i>
+              <span>شارەزا لە بواری ئای تی و سیستم (IT &amp; Systems Specialist)</span>
+            </div>
+          </div>
+
+          <!-- Official Traffic IT Logo -->
+          <div class="about-logo-box">
+            <img src="traffic-it-logo.jpg" alt="لۆگۆی فەرمی هاتووچۆ و ئای تی" class="about-logo-img" onerror="this.onerror=null; this.src='app-icon.png';">
+            <div class="about-logo-caption">هاتووچۆی سلێمانی • IT</div>
+          </div>
+        </div>
+
+        <!-- Contact & Direct Communication Cards -->
+        <div class="about-contact-grid">
+          <!-- Phone Call Card -->
+          <div class="about-contact-card">
+            <div class="about-contact-icon phone">
+              <i data-lucide="phone-call"></i>
+            </div>
+            <div class="about-contact-details">
+              <div class="about-contact-label">ژمارەی مۆبایل (پەیوەندی ڕاستەوخۆ)</div>
+              <div class="about-contact-val">07726171818</div>
+              <div class="about-contact-actions">
+                <a href="tel:07726171818" class="btn-contact-action call">
+                  <i data-lucide="phone" style="width:14px;height:14px;"></i>
+                  <span>پەیوەندی بکە</span>
+                </a>
+                <button type="button" class="btn-contact-action copy" id="btn-copy-about-phone">
+                  <i data-lucide="copy" style="width:14px;height:14px;"></i>
+                  <span>کۆپیکردن</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- WhatsApp Card -->
+          <div class="about-contact-card">
+            <div class="about-contact-icon whatsapp">
+              <i data-lucide="message-circle"></i>
+            </div>
+            <div class="about-contact-details">
+              <div class="about-contact-label">واتس ئەپ (WhatsApp)</div>
+              <div class="about-contact-val">07726171818</div>
+              <div class="about-contact-actions">
+                <a href="https://wa.me/9647726171818" target="_blank" rel="noopener noreferrer" class="btn-contact-action whatsapp">
+                  <i data-lucide="send" style="width:14px;height:14px;"></i>
+                  <span>نامە بنێرە لە واتس ئەپ</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Specialization, Engineering & Skills -->
+        <div class="about-skills-section">
+          <div class="about-section-header">
+            <i data-lucide="layers" style="color: var(--primary);"></i>
+            <span>تایبەتمەندی و بوارەکانی شارەزایی</span>
+          </div>
+
+          <div class="about-skills-grid">
+            <div class="about-skill-item">
+              <div class="about-skill-icon">
+                <i data-lucide="server" style="color: var(--accent-cyan); width: 20px; height: 20px;"></i>
+              </div>
+              <div>
+                <div class="about-skill-title">ئەندازیاری داتابەیس و سێرڤەر</div>
+                <div class="about-skill-desc">دیزاین و بەڕێوەبردنی سێرڤەری SQL Server بە شێوازی پرۆفیشناڵ و بەستنەوەی تۆڕی لۆکاڵ و دەرەکی.</div>
+              </div>
+            </div>
+
+            <div class="about-skill-item">
+              <div class="about-skill-icon">
+                <i data-lucide="car" style="color: #fbbf24; width: 20px; height: 20px;"></i>
+              </div>
+              <div>
+                <div class="about-skill-title">سیستەمی تاقیگە و پشکنینی ئۆتۆمبێل</div>
+                <div class="about-skill-desc">دروستکردنی خێراترین سیستەمی تۆمارکردنی زانیاری، کامێرا و پشکنینی ئۆتۆمبێل بە کوالیتی بەرز.</div>
+              </div>
+            </div>
+
+            <div class="about-skill-item">
+              <div class="about-skill-icon">
+                <i data-lucide="tablet-smartphone" style="color: #34d399; width: 20px; height: 20px;"></i>
+              </div>
+              <div>
+                <div class="about-skill-title">ئەپڵیکەیشنی تابڵێت و مۆبایل</div>
+                <div class="about-skill-desc">پەرەپێدانی بەرنامەی دەستی (Android & Tablets) بۆ ئاسانکاری و خێرایی کارەکانی کارمەندان لە مەیداندا.</div>
+              </div>
+            </div>
+
+            <div class="about-skill-item">
+              <div class="about-skill-icon">
+                <i data-lucide="shield-check" style="color: #818cf8; width: 20px; height: 20px;"></i>
+              </div>
+              <div>
+                <div class="about-skill-title">ئاسایشی داتا و نوێکردنەوەی خۆکار</div>
+                <div class="about-skill-desc">پاراستنی داتاکان بە سیستەمی Authentication و ئەپدەیتی یەک کلیکی خۆکار لەسەر هەموو ئامێرەکان.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- LOGIN VIEW -->
-    <section id="view-login" class="page-view">
+    <section id="view-login" class="page-view active">
       <div style="max-width:420px; margin:0 auto;">
         <div class="glass-card">
           <h2 class="card-title">
@@ -932,6 +1158,18 @@
               <span>Sign In</span>
             </button>
           </form>
+        </div>
+
+        <!-- Developer Credit Card Under Login -->
+        <div class="developer-login-card">
+          <div class="dev-shield-avatar">
+            <img src="traffic-it-logo.jpg" alt="Logo" style="width:100%;height:100%;border-radius:10px;object-fit:cover;" onerror="this.onerror=null; this.parentElement.innerText='NQ';">
+          </div>
+          <div class="dev-info-box">
+            <span class="dev-info-subtitle">دیزاین و پەرەپێدانی سیستم:</span>
+            <strong class="dev-info-name">نەژاد قادر محمد</strong>
+            <span style="font-size: 0.72rem; color: var(--accent-cyan); display: block; margin-top: 2px;">کارمەندی پێشکەوتووی هاتووچۆی سلێمانی • IT</span>
+          </div>
         </div>
       </div>
     </section>
@@ -985,6 +1223,6 @@
     </div>
   </main>
 
-  <script src="app.js?v=10"></script>
+  <script src="app.js?v=12"></script>
 </body>
 </html>

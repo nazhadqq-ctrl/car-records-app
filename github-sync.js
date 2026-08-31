@@ -12,6 +12,8 @@ const REPO_NAME = process.env.GITHUB_REPO || 'image_-car';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.argv[2] || '';
 
 const FILES_TO_SYNC = [
+  'version.json',
+  'auto-updater.js',
   'server.js',
   'package.json',
   'config.json',

@@ -1,3 +1,9 @@
+/* ═══════════════════════════════════════════════════════════════
+   🚗 CAR RECORDS & INSPECTION SYSTEM — BACKEND SERVER
+   👑 DESIGNED & DEVELOPED BY: NAZHAD Q. MAHAMMED
+   © 2026 NAZHAD Q. MAHAMMED — ALL RIGHTS RESERVED
+   ═══════════════════════════════════════════════════════════════ */
+
 require('dotenv').config();
 const http = require('http');
 const fs = require('fs');
@@ -447,6 +453,52 @@ const server = http.createServer((req, res) => {
   if (pathname.startsWith('/api/') && isApiThrottled(clientIp)) {
     res.writeHead(429, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ error: 'Too Many Requests. Please try again later.' }));
+  }
+
+  // --- API 0: SYSTEM HEALTH & AUTO-UPDATER ---
+  if (pathname === '/api/status' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ status: 'ok', port: PORT }));
+  }
+
+  if (pathname === '/api/system/version' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    try {
+      const vPath = path.join(__dirname, 'version.json');
+      if (fs.existsSync(vPath)) {
+        return res.end(fs.readFileSync(vPath, 'utf8'));
+      }
+    } catch (e) {}
+    return res.end(JSON.stringify({ version: '1.1.0', build: 110 }));
+  }
+
+  if (pathname === '/api/system/check-update' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      let isForce = false;
+      try {
+        if (body) {
+          const parsed = JSON.parse(body);
+          if (parsed && parsed.force) isForce = true;
+        }
+      } catch (e) {}
+
+      try {
+        const updater = require('./auto-updater.js');
+        updater.checkForUpdates(isForce).then(result => {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(result));
+        }).catch(err => {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: err.message }));
+        });
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: e.message }));
+      }
+    });
+    return;
   }
 
   // --- API 1: SETUP & CONNECTION STATUS (ZERO SERVER EXPOSURE TO UNAUTHORIZED VISITORS) ---
@@ -1402,6 +1454,6 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`🔒 [SECURE SHIELD ACTIVE] 3-Page App running at http://localhost:${PORT}`);
 });

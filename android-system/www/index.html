@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#060910">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="تۆمارکردنی زانیاری و وێنەی ئۆتۆمبێل — SQL Server">
+  <title>تۆمارکردنی زانیاری و وێنەی ئۆتۆمبێل</title>
+  <link rel="stylesheet" href="styles.css?v=25">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <!-- Top Navigation Header -->
+  <header class="top-bar">
+    <div class="brand">
+      <div class="brand-icon">🚗</div>
+      <div style="min-width:0;">
+        <div class="brand-title">تۆمارکردنی زانیاری و وێنەی ئۆتۆمبێل</div>
+        <div style="font-size:0.68rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="header-status">System Ready</div>
+      </div>
+    </div>
+    <div id="user-session-box" style="display:flex; align-items:center; gap:0.6rem; flex-shrink:0;">
+      <span id="logged-user-name" style="font-weight:700; font-size:0.78rem; color:var(--accent-cyan); white-space:nowrap;">Guest</span>
+      <button class="btn btn-secondary" id="logout-btn" style="display:none; padding:0.35rem 0.7rem; font-size:0.72rem; border-radius:6px;" title="Logout">⎋</button>
+    </div>
+  </header>
+
+  <main class="page-container">
+    <!-- TOP TABS NAVIGATION (Visible when logged in) -->
+    <nav class="nav-tabs-bar" id="admin-tabs-nav" style="display: none;">
+      <button type="button" class="nav-tab-btn" data-tab="search" id="tab-search-btn">
+        <i data-lucide="search"></i>
+        <span>Search</span>
+      </button>
+      <button type="button" class="nav-tab-btn active" data-tab="sql-config" id="tab-sql-btn">
+        <i data-lucide="database"></i>
+        <span>SQL Server</span>
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="admin-setup" id="tab-setup-btn">
+        <i data-lucide="shield-check"></i>
+        <span>Admin Setup</span>
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="users" id="tab-users-btn">
+        <i data-lucide="users"></i>
+        <span>User Management</span>
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="scanner" id="tab-scanner-btn">
+        <i data-lucide="scan"></i>
+        <span>تۆمارکردنی زانیاری و وێنە</span>
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="defects" id="tab-defects-btn">
+        <i data-lucide="alert-triangle"></i>
+        <span>کەموکوڕی ئۆتۆمبێل</span>
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="car-details" id="tab-car-details-btn">
+        <i data-lucide="file-text"></i>
+        <span>ئەنجام و وردەکاری ئۆتۆمبێل</span>
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="system-update" id="tab-update-btn" style="border-color: rgba(34, 211, 238, 0.4); color: var(--accent-cyan);">
+        <i data-lucide="refresh-cw"></i>
+        <span>🔄 نوێکردنەوەی سیستەم</span>
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="about-me" id="tab-about-btn" style="border-color: rgba(129, 140, 248, 0.4); color: var(--primary);">
+        <i data-lucide="user-check"></i>
+        <span>👤 دەربارەی من</span>
+      </button>
+    </nav>
+
+    <!-- TAB 1: SQL SERVER CONFIGURATION (Multi-Server Manager with Local File Persistence) -->
+    <section id="view-sql-config" class="page-view">
+      <div class="glass-card">
+        <h2 class="card-title" style="margin-bottom: 1.25rem;">
+          <span>SQL Server Configuration</span>
+        </h2>
+
+        <!-- Status Banner -->
+        <div id="sql-config-status-banner" class="config-status-banner">
+          <i data-lucide="database" style="width: 18px; height: 18px; flex-shrink: 0;"></i>
+          <span id="sql-config-status-text">Not configured — enter details below</span>
+        </div>
+
+        <!-- Fast Server Profile Switcher -->
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label style="color:var(--accent-cyan);">Saved Server Profiles (سیرفرات محفوظة)</label>
+            <button type="button" id="btn-new-server-profile" style="background:none; border:none; color:var(--primary); font-size:0.75rem; cursor:pointer; font-weight:700;">+ New Profile</button>
+          </div>
+          <select id="saved-servers-select" style="border-color: rgba(99, 102, 241, 0.4);">
+            <option value="">-- Select or Add a Server Profile --</option>
+          </select>
+        </div>
+
+        <!-- Form -->
+        <form id="sql-server-config-form" class="form-grid">
+          <div class="form-group full-width">
+            <label>Profile Nickname (اسم السیرفر)</label>
+            <input type="text" id="cfg-server-name" placeholder="e.g. Primary Server 1, Backup Server 2">
+          </div>
+
+          <div class="form-group full-width">
+            <label>Server IP / Hostname</label>
+            <input type="text" id="cfg-server-ip" required placeholder="e.g. 192.168.1.100">
+          </div>
+
+          <div class="form-group full-width">
+            <label>Database Name</label>
+            <input type="text" id="cfg-database" required placeholder="Database Name">
+          </div>
+
+          <div class="form-group full-width" id="grp-sql-user">
+            <label>SQL Username</label>
+            <input type="text" id="cfg-user" placeholder="sa">
+          </div>
+
+          <div class="form-group full-width" id="grp-sql-pass">
+            <label>SQL Password</label>
+            <div class="password-input-wrap">
+              <input type="password" id="cfg-password" placeholder="SQL Password">
+              <button type="button" class="password-toggle-btn" id="btn-toggle-cfg-pass" title="Toggle password visibility">
+                <i data-lucide="eye" style="width:16px;height:16px;"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group full-width">
+            <label>Port (default 1433)</label>
+            <input type="number" id="cfg-port" value="1433" placeholder="1433">
+          </div>
+
+          <!-- Windows Authentication Toggle -->
+          <div class="form-group full-width">
+            <div class="toggle-switch-row">
+              <div class="switch-label-wrap">
+                <span class="switch-title">Windows Authentication</span>
+                <span class="switch-desc">Use Windows login instead of SQL credentials</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="cfg-windows-auth">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Admin Security Authorization -->
+          <div class="form-group full-width" style="
+            background: rgba(239, 68, 68, 0.08);
+            border: 1.5px solid rgba(239, 68, 68, 0.35);
+            border-radius: var(--radius-sm);
+            padding: 1rem;
+            margin-top: 0.5rem;
+          ">
+            <label style="color: #f87171; font-weight: 700; display: flex; align-items: center; gap: 0.4rem;">
+              🔒 Admin Master Password (وشەی نهێنی ئەدمین بۆ پاشەکەوت و پاراستن)
+            </label>
+            <div class="password-input-wrap">
+              <input type="password" id="cfg-admin-password" required
+                placeholder="Enter Admin Password (e.g. Na2652014Va) to authorize changes"
+                style="border-color: rgba(239, 68, 68, 0.5);">
+              <button type="button" class="password-toggle-btn" id="btn-toggle-cfg-admin-pass" title="Toggle password visibility">
+                <i data-lucide="eye" style="width:16px;height:16px;"></i>
+              </button>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
+              ⚠️ پێویستە تێپەڕەوشەی ئەدمین بنووسیت بۆ ئەوەی ڕێگە بدرێت ڕێکخستنەکانی داتابەیس پاشەکەوت یان تاقی بکرێتەوە.
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="form-group full-width" style="display:flex; gap:0.75rem; margin-top:1rem; flex-wrap:wrap;">
+            <button type="button" class="btn btn-test" id="btn-test-sql" style="flex:1; min-width:140px;">
+              <i data-lucide="check"></i>
+              <span>Test Connection</span>
+            </button>
+            <button type="submit" class="btn btn-save-blue" style="flex:1.2; min-width:160px;">
+              <i data-lucide="save"></i>
+              <span>Save Configuration</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- TAB 2: SEARCH RECORDS -->
+    <section id="view-search" class="page-view">
+      <div class="glass-card">
+        <h2 class="card-title">
+          <i data-lucide="search" style="color: var(--accent-cyan);"></i>
+          <span>Search Database Records</span>
+        </h2>
+        <p class="card-subtitle">Search entries in active SQL Server `dbo.CAR_` table</p>
+
+        <div style="display:flex; gap:0.5rem; margin-bottom:1.25rem;">
+          <input type="text" id="search-input" placeholder="Search by Car No, Inspector, or Date..." style="flex:1;">
+          <button type="button" class="btn btn-primary" id="btn-search-trigger" style="padding:0.75rem 1.25rem;">
+            <i data-lucide="search"></i>
+          </button>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Car No</th>
+                <th>Batch</th>
+                <th>Plate</th>
+                <th>Date</th>
+                <th>User</th>
+                <th>Inspector</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="search-results-tbody">
+              <!-- Dynamically Populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: ADMIN SETUP (Initial Provisioning & Master Password) -->
+    <section id="view-admin-setup" class="page-view">
+      <div class="glass-card">
+        <h2 class="card-title">
+          <i data-lucide="shield-check" style="color: var(--accent-amber);"></i>
+          <span>Admin Master Credentials</span>
+        </h2>
+        <p class="card-subtitle">Manage master admin access credentials.</p>
+
+        <form id="admin-setup-form" class="form-grid">
+          <div class="form-group">
+            <label>Admin Username</label>
+            <input type="text" id="setup-admin-user" required value="admin">
+          </div>
+          <div class="form-group">
+            <label>Admin Password</label>
+            <input type="password" id="setup-admin-password" required value="12345">
+          </div>
+          <div class="form-group full-width" style="margin-top:0.75rem;">
+            <button type="submit" class="btn btn-primary" style="width:100%;">
+              <i data-lucide="lock"></i>
+              <span>Update Admin Credentials</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- TAB 4: USER MANAGEMENT (dbo.image_user) -->
+    <section id="view-users" class="page-view">
+      <div class="glass-card">
+        <h2 class="card-title">
+          <i data-lucide="users" style="color: var(--accent-amber);"></i>
+          <span>User Management</span>
+        </h2>
+        <p class="card-subtitle">Manage operator accounts directly from SQL Server table <code>dbo.image_user</code></p>
+
+        <form id="add-user-form" class="form-grid" style="margin-bottom: 1.5rem;">
+          <div class="form-group">
+            <label>Username [User_]</label>
+            <input type="text" id="new-user-name" required placeholder="e.g. operator1">
+          </div>
+          <div class="form-group">
+            <label>Password [password]</label>
+            <input type="text" id="new-user-pass" required placeholder="Password">
+          </div>
+          <div class="form-group">
+            <label>Permission [permetion]</label>
+            <select id="new-user-role">
+              <option value="User">User (Operator)</option>
+              <option value="Admin">Admin</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Status [on_off]</label>
+            <select id="new-user-status">
+              <option value="on">on (مفعل)</option>
+              <option value="off">off (معطل)</option>
+            </select>
+          </div>
+          <div class="form-group full-width" style="margin-top: 0.5rem;">
+            <button type="submit" class="btn btn-secondary" style="width: 100%;">+ Add User to dbo.image_user</button>
+          </div>
+        </form>
+
+        <h4 style="font-size:0.85rem; margin-bottom:0.65rem; color:var(--text-label);">Accounts in <code>dbo.image_user</code></h4>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>User_</th>
+                <th>Permetion</th>
+                <th>Status [on_off]</th>
+                <th>Password</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-table-tbody">
+              <!-- Dynamically Populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5 / PAGE 3: SCANNER & DATA ENTRY -->
+    <section id="view-scanner" class="page-view">
+      <div class="glass-card">
+        <h2 class="card-title">
+          <i data-lucide="car" style="color: var(--accent-emerald);"></i>
+          <span>زانیاری ئوتومبێل</span>
+        </h2>
+        <p class="card-subtitle">زانیاری ئۆتۆمبێل پڕبکەرەوە و وێنە بگرە بۆ پاشەکەوتکردن لە SQL Server</p>
+
+        <form id="car-form" class="form-grid">
+          <div class="form-group">
+            <label>ژمارەی ئوتومبێل بنوسە [carNo]</label>
+            <input type="text" id="car-carNo" maxlength="8" required
+              placeholder="e.g. 77481AB"
+              inputmode="latin" lang="en" autocapitalize="characters" spellcheck="false"
+              style="text-transform: uppercase; letter-spacing: 2px; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1rem; direction: ltr; text-align: left;"
+              oninput="if(window.__forceEnglishCarNo) window.__forceEnglishCarNo(this)">
+          </div>
+          <div class="form-group">
+            <label>بەش</label>
+            <select id="car-bash" dir="rtl" style="cursor: pointer; font-size: 0.95rem; font-weight: 500;">
+              <option value="">-- هەڵبژێرە --</option>
+              <option value="تایبەت">تایبەت</option>
+              <option value="بار">بار</option>
+              <option value="بار-پاشگر">بار-پاشگر</option>
+              <option value="بار-پاشگر2">بار-پاشگر2</option>
+              <option value="بار-پاشگر3">بار-پاشگر3</option>
+              <option value="بیناسازی">بیناسازی</option>
+              <option value="کرێ">کرێ</option>
+              <option value="ماتۆڕ">ماتۆڕ</option>
+              <option value="میری">میری</option>
+              <option value="جۆری تر">جۆری تر</option>
+              <option value="ناوخۆ">ناوخۆ</option>
+              <option value="هاتووچۆ">هاتووچۆ</option>
+              <option value="کشتوکاڵی">کشتوکاڵی</option>
+            </select>
+          </div>
+          <div class="form-group" style="position: relative;">
+            <label>ناوی پارێزگا یان شوێن</label>
+            <div class="custom-combobox-wrap" id="plet-combobox-wrap">
+              <input type="text" id="car-plet" dir="rtl" required
+                placeholder="🔍 بنووسە یان هەڵبژێرە لە لیست..."
+                autocomplete="off"
+                class="kurdish-input"
+                style="cursor: pointer; font-size: 0.95rem; font-weight: 500;">
+              <button type="button" class="combobox-arrow-btn" id="plet-arrow-btn" tabindex="-1" title="Toggle List">▼</button>
+              <div id="plet-dropdown-menu" class="custom-dropdown-menu" style="display: none;"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>بەرواری پشکنین [date_into]</label>
+            <input type="date" id="car-date_into" readonly tabindex="-1" style="opacity: 0.75; cursor: not-allowed; pointer-events: none; background: rgba(0, 0, 0, 0.35);">
+          </div>
+          <div class="form-group">
+            <label>پشکنینی</label>
+            <select id="car-N_pshknin" dir="rtl" style="cursor: pointer; font-size: 0.95rem; font-weight: 500;">
+              <option value="">-- هەڵبژێرە --</option>
+              <option value="یەکەم">یەکەم</option>
+              <option value="دووەم">دووەم</option>
+              <option value="سێهەم">سێهەم</option>
+              <option value="چوارەم">چوارەم</option>
+            </select>
+          </div>
+
+          <!-- Camera Capture + GPS Stamp (getUserMedia) -->
+          <div class="form-group full-width">
+            <label>📷 وێنەی ئۆتۆمبێل [pic] — کامێرای ڕاستەوخۆ و شوێنی جوگرافی</label>
+
+            <!-- GPS Status Bar -->
+            <div id="gps-status-bar" style="
+              display: flex; align-items: center; gap: 0.6rem;
+              background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25);
+              border-radius: 8px; padding: 0.55rem 0.9rem; margin-bottom: 0.75rem;
+              font-size: 0.82rem; color: var(--text-muted);
+            ">
+              <span id="gps-dot" style="width:10px;height:10px;border-radius:50%;background:#6b7280;display:inline-block;flex-shrink:0;"></span>
+              <span id="gps-text">⏳ کرتە لەسەر دوگمەی کامێرا بکە بۆ چالاککردنی GPS و کردنەوەی کامێرا...</span>
+            </div>
+
+            <!-- Open Camera Button -->
+            <button type="button" id="open-camera-btn" class="btn btn-secondary" style="
+              width: 100%; padding: 1.1rem; font-size: 1rem; margin-bottom: 0.75rem;
+              display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+            ">
+              <i data-lucide="camera" style="width:20px;height:20px;"></i>
+              <span>📸 کامێرا بکەرەوە بۆ گرتنی وێنە</span>
+            </button>
+
+            <!-- Live Camera View (hidden until activated) -->
+            <div id="camera-live-wrap" style="display:none; position:relative; border-radius:12px; overflow:hidden; border:2px solid var(--primary-violet); margin-bottom:0.75rem; aspect-ratio: 16/9; background:#000;">
+              <video id="camera-video" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover; display:block; border-radius:10px;"></video>
+              
+              <!-- Standard Horizontal Alignment Guide -->
+              <div style="position:absolute; top:8px; left:8px; background:rgba(0,0,0,0.6); color:var(--accent-cyan); padding:0.25rem 0.6rem; border-radius:6px; font-size:0.75rem; font-weight:700; border:1px solid rgba(34,211,238,0.3);">
+                📐 دۆخی ئاسۆیی ستاندارد (16:9 Landscape)
+              </div>
+
+              <div style="position:absolute; bottom:12px; left:0; right:0; display:flex; justify-content:center; gap:1rem; z-index:10;">
+                <button type="button" id="capture-photo-btn" style="
+                  width:64px; height:64px; border-radius:50%; border:4px solid #fff;
+                  background:rgba(239,68,68,0.85); cursor:pointer; box-shadow:0 4px 20px rgba(0,0,0,0.4);
+                  transition: transform 0.15s;
+                " title="گرتنی وێنە"></button>
+                <button type="button" id="close-camera-btn" style="
+                  width:44px; height:44px; border-radius:50%; border:2px solid #fff;
+                  background:rgba(100,100,100,0.7); cursor:pointer; color:#fff;
+                  font-size:1.2rem; display:flex; align-items:center; justify-content:center;
+                " title="داخستنی کامێرا">✕</button>
+              </div>
+            </div>
+
+            <!-- Hidden canvas for GPS stamping & Landscape normalization -->
+            <canvas id="gps-canvas" style="display:none;"></canvas>
+
+            <!-- Preview after capture -->
+            <div id="capture-preview-wrap" style="display:none; position:relative; border-radius:12px; overflow:hidden; border:2px solid var(--accent-emerald); aspect-ratio: 16/9; background:#000;">
+              <img id="image-preview" style="width:100%; height:100%; object-fit:contain; display:block; border-radius:10px;" alt="Preview">
+              <div id="image-size-badge" style="
+                position:absolute; top:8px; left:8px;
+                background:rgba(16,185,129,0.85); color:#fff;
+                padding:0.25rem 0.65rem; border-radius:6px; font-size:0.75rem; font-weight:700;
+              ">📐 1280×720 (ئاسۆیی) | 💾 قەبارەی پاشەکەوت: ~150 KB</div>
+              <div id="gps-overlay-label" style="
+                position:absolute; bottom:0; left:0; right:0;
+                background: linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.45) 100%);
+                color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.9);
+                font-size:0.75rem; padding:0.4rem 0.7rem;
+                font-family: monospace; text-align:center; letter-spacing:0.5px;
+              "></div>
+              <!-- Retake button -->
+              <button type="button" id="retake-btn" style="
+                position:absolute; top:8px; right:8px;
+                background:rgba(239,68,68,0.85); color:#fff; border:none; border-radius:8px;
+                padding:0.4rem 0.8rem; font-size:0.8rem; cursor:pointer;
+              ">🔄 دووبارە گرتنەوە</button>
+            </div>
+          </div>
+
+          <div class="form-group full-width" style="margin-top: 1rem;">
+            <button type="submit" class="btn btn-primary" style="padding: 1.1rem; font-size: 1.05rem; width: 100%;">
+              <i data-lucide="send"></i>
+              <span>داگرتن بۆ پاشەکەوت</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Live Records Preview (Today Only) -->
+      <div class="glass-card">
+        <h3 style="margin-bottom:0.75rem; font-size:0.95rem; font-weight:700; display:flex; align-items:center; gap:0.5rem;">
+          <i data-lucide="calendar" style="width:18px;height:18px;color:var(--accent-cyan);"></i>
+          <span>تۆمارکراوەکانی ئەمڕۆ</span>
+        </h3>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>زنجیرە</th>
+                <th>ژماره</th>
+                <th>بهش</th>
+                <th>پارێزگا</th>
+                <th>بەروار</th>
+                <th>یوزهر</th>
+                <th>پشکنینی</th>
+                <th>🖨️ چاپ</th>
+              </tr>
+            </thead>
+            <tbody id="car-records-tbody">
+              <!-- Dynamically Populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 6: VEHICLE DEFECTS ENTRY (تۆمارکردنی کەموکوڕی ئۆتۆمبێل) -->
+    <section id="view-defects" class="page-view">
+      <div class="glass-card">
+        <h2 class="card-title">
+          <i data-lucide="alert-triangle" style="color: var(--accent-amber);"></i>
+          <span>تۆمارکردنی کەموکوڕی ئۆتۆمبێل</span>
+        </h2>
+        <p class="card-subtitle">زانیاری ئۆتۆمبێل بنووسە و کەموکوڕییەکان لە لیست هەڵبژێرە بۆ پاشەکەوتکردنی بەکۆمەڵ</p>
+
+        <form id="defects-form" class="form-grid">
+          <!-- Car Info Section -->
+          <div class="form-group">
+            <label>ژمارەی ئۆتۆمبێل</label>
+            <input type="text" id="df-AA" maxlength="8" required
+              placeholder="نموونە: 77481AB"
+              inputmode="latin" lang="en" autocapitalize="characters" spellcheck="false"
+              style="text-transform: uppercase; letter-spacing: 2px; font-family: 'JetBrains Mono', monospace; font-weight: 700;"
+              oninput="if(window.__forceEnglishCarNo) window.__forceEnglishCarNo(this)">
+          </div>
+
+          <div class="form-group">
+            <label>بەشی ئۆتۆمبێل</label>
+            <select id="df-BBB" dir="rtl" style="cursor: pointer; font-size: 0.95rem; font-weight: 500;">
+              <option value="">-- هەڵبژێرە --</option>
+              <option value="تایبەت">تایبەت</option>
+              <option value="بار">بار</option>
+              <option value="بار-پاشگر">بار-پاشگر</option>
+              <option value="بار-پاشگر2">بار-پاشگر2</option>
+              <option value="بار-پاشگر3">بار-پاشگر3</option>
+              <option value="بیناسازی">بیناسازی</option>
+              <option value="کرێ">کرێ</option>
+              <option value="ماتۆڕ">ماتۆڕ</option>
+              <option value="میری">میری</option>
+              <option value="جۆری تر">جۆری تر</option>
+              <option value="ناوخۆ">ناوخۆ</option>
+              <option value="هاتووچۆ">هاتووچۆ</option>
+              <option value="کشتوکاڵی">کشتوکاڵی</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="position: relative;">
+            <label>پارێزگا یان شوێن</label>
+            <div class="custom-combobox-wrap" id="df-plet-combobox-wrap">
+              <input type="text" id="df-CCC" dir="rtl"
+                placeholder="🔍 بنووسە یان هەڵبژێرە لە لیست..."
+                autocomplete="off"
+                class="kurdish-input"
+                style="cursor: pointer; font-size: 0.95rem; font-weight: 500;">
+              <button type="button" class="combobox-arrow-btn" id="df-plet-arrow-btn" tabindex="-1" title="کردنەوەی لیست">▼</button>
+              <div id="df-plet-dropdown-menu" class="custom-dropdown-menu" style="display: none;"></div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>پشکنینی</label>
+            <select id="df-DDD" dir="rtl" style="cursor: pointer; font-size: 0.95rem; font-weight: 500;">
+              <option value="">-- هەڵبژێرە --</option>
+              <option value="یەکەم">یەکەم</option>
+              <option value="دووەم">دووەم</option>
+              <option value="سێهەم">سێهەم</option>
+              <option value="چوارەم">چوارەم</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>ژمارەی وەسڵ</label>
+            <input type="number" id="df-Psulla" placeholder="ئۆتۆماتیکی دروست دەبێت ئەگەر بەتاڵ بێت">
+          </div>
+
+          <div class="form-group">
+            <label>بەرواری تۆمارکردن</label>
+            <input type="date" id="df-date_" readonly tabindex="-1" style="opacity: 0.75; cursor: not-allowed; pointer-events: none; background: rgba(0, 0, 0, 0.35);">
+          </div>
+
+          <!-- Defect Selection Box -->
+          <div class="form-group full-width" style="position: relative; background: rgba(245, 158, 11, 0.08); border: 1.5px solid rgba(245, 158, 11, 0.35); border-radius: var(--radius-md); padding: 1.1rem; overflow: visible !important;">
+            <label style="color: #fbbf24; font-weight: 800; font-size: 0.98rem; margin-bottom: 0.75rem; display: block;">
+              🔍 هەڵبژاردن، نووسین یان لێدانی کۆدی ژمارەی کەموکوڕی
+            </label>
+
+            <div style="display: flex; flex-direction: column; gap: 0.85rem; overflow: visible !important;">
+              <!-- Row 1: Code Input + Native Mobile Select -->
+              <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; overflow: visible !important;">
+                <div style="width: 110px; min-width: 90px; flex-shrink: 0;">
+                  <label style="font-size: 0.68rem; color: #fbbf24; margin-bottom: 0.2rem;">🔢 کۆد (1, 2...)</label>
+                  <input type="number" id="df-code-input" placeholder="1, 2..."
+                    style="font-family: 'JetBrains Mono', monospace; font-weight: 800; text-align: center; font-size: 1rem; border-color: rgba(245, 158, 11, 0.5); background: rgba(0,0,0,0.4);"
+                    title="کۆدی ژمارەی کەموکوڕی لێبدە">
+                </div>
+                <div style="flex: 1; min-width: 200px;">
+                  <label style="font-size: 0.68rem; color: #fbbf24; margin-bottom: 0.2rem;">📋 هەڵبژاردنی خێرا لە لیست (بۆ مۆبایل)</label>
+                  <select id="df-Xx_-select" dir="rtl" style="cursor: pointer; font-size: 0.95rem; font-weight: 700; border-color: rgba(245, 158, 11, 0.5); background-color: #0c1324; color: #fff;">
+                    <option value="">📋 هەڵبژاردنی خێرا لە لیست...</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Row 2: Searchable Kurdish Text Box + Combobox Dropdown -->
+              <div style="position: relative; overflow: visible !important;">
+                <label style="font-size: 0.68rem; color: var(--text-label); margin-bottom: 0.2rem;">✍️ یان لێرە دەقەکە بنووسە یان لە لیست بگەڕێ</label>
+                <div class="custom-combobox-wrap" id="defect-combobox-wrap" style="position: relative; overflow: visible !important;">
+                  <input type="text" id="df-Xx_" dir="rtl"
+                    placeholder="🔍 کەموکوڕی بنووسە یان بگەڕێ..."
+                    autocomplete="off"
+                    class="kurdish-input"
+                    style="cursor: pointer; font-size: 0.95rem; font-weight: 500; padding-left: 45px;">
+                  <button type="button" class="combobox-arrow-btn" id="defect-arrow-btn" tabindex="-1" title="کردنەوەی لیست">▼</button>
+                  <div id="defect-dropdown-menu" class="custom-dropdown-menu" style="display: none; position: absolute; z-index: 999999 !important;"></div>
+                </div>
+              </div>
+
+              <!-- Row 3: Prominent Add Button (ALWAYS VISIBLE & FULL WIDTH ON MOBILE) -->
+              <div>
+                <button type="button" id="btn-add-defect-to-grid" class="btn" style="background: var(--accent-amber); color: #000; font-weight: 800; width: 100%; font-size: 1rem; padding: 0.85rem; box-shadow: 0 4px 16px rgba(251, 191, 36, 0.35);">
+                  <i data-lucide="plus-circle"></i>
+                  <span>➕ زیادکردنی ئەم کەموکوڕییە بۆ لیست</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Temporary Data Grid View (1 to 10 defects queued) -->
+          <div class="form-group full-width" style="margin-top: 1rem;">
+            <h4 style="font-size:0.9rem; margin-bottom:0.6rem; color:var(--accent-cyan); display:flex; justify-content:space-between; align-items:center;">
+              <span>📋 لیستی کەموکوڕییە هەڵبژێردراوەکانی ئەم ئۆتۆمبێلە</span>
+              <span id="defect-grid-count-badge" class="tag-badge" style="background:var(--accent-amber); color:#000;">0 هەڵبژێردراو</span>
+            </h4>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 60px;">زنجیرە</th>
+                    <th>جۆری کەموکوڕی</th>
+                    <th style="width: 100px; text-align: center;">کردار</th>
+                  </tr>
+                </thead>
+                <tbody id="defects-grid-tbody">
+                  <tr>
+                    <td colspan="3" style="text-align:center; color:var(--text-muted); padding:1.5rem;">
+                      هیچ کەموکوڕییەک زیانەنەکراوە. لە سەرەوە کەموکوڕی هەڵبژێرە و دوگمەی (➕ زیادکردن) دابگرە.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- BATCH SAVE BUTTON -->
+          <div class="form-group full-width" style="margin-top: 1.25rem;">
+            <button type="submit" class="btn btn-primary" id="btn-save-all-defects" style="padding: 1.1rem; font-size: 1.05rem; width: 100%; background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; font-weight: 800;">
+              <i data-lucide="database"></i>
+              <span>💾 پاشەکەوتکردنی هەموو کەموکوڕییەکان بە یەک جار</span>
+            </button>
+          </div>
+        </form>
+
+        <!-- Today's Saved Defects Records -->
+        <div style="margin-top: 2rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-bottom:0.85rem;">
+            <h3 style="font-size:0.95rem; font-weight:700; display:flex; align-items:center; gap:0.5rem; margin:0;">
+              <i data-lucide="calendar" style="width:18px;height:18px;color:var(--accent-amber);"></i>
+              <span>تۆمارکراوەکانی ئەمڕۆ</span>
+            </h3>
+            <span id="bb-history-count-badge" class="tag-badge" style="background:rgba(251, 191, 36, 0.15); color:var(--accent-amber); font-weight:700;">
+              📊 0 کەموکوڕی
+            </span>
+          </div>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>زنجیرە</th>
+                  <th>پشکنینی</th>
+                  <th>ژمارەی ئۆتۆمبێل</th>
+                  <th>بەش</th>
+                  <th>پارێزگا / شوێن</th>
+                  <th>کەموکوڕی</th>
+                  <th>بەروار</th>
+                  <th>بەکارهێنەر</th>
+                  <th>سڕینەوە</th>
+                </tr>
+              </thead>
+              <tbody id="saved-bb-tbody">
+                <!-- Dynamically Populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 7: CAR DETAILS (ئەنجام و وردەکاری ئۆتۆمبێل) -->
+    <section id="view-car-details" class="page-view">
+      <div class="glass-card">
+        
+        <form id="car-details-form" class="form-wrapper" dir="rtl">
+          <!-- Header Area: Title + Constant Fields -->
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 0.5rem; gap: 1rem;">
+            <div>
+              <h2 class="card-title">
+                <i data-lucide="file-text" style="color: var(--accent-cyan);"></i>
+                <span>ئەنجام و وردەکاری ئۆتۆمبێل</span>
+              </h2>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+              <div class="form-group" style="width: 220px; margin-bottom: 0;">
+                <label>ناوی تاقیگە</label>
+                <input type="text" id="cd-labName" dir="rtl" class="kurdish-input" value="تاقیگەی ناوەندی" style="font-size: 0.9rem; font-weight: bold; padding: 0.5rem; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--text-color);">
+              </div>
+              <div class="form-group" style="width: 200px; margin-bottom: 0;">
+                <label>ناوی بەکارهێنەر</label>
+                <input type="text" id="cd-username" disabled style="opacity: 0.7; cursor: not-allowed; background: rgba(0,0,0,0.2); padding: 0.5rem;">
+              </div>
+            </div>
+          </div>
+
+          <!-- Row 1: carNo, bash, plet, N_pshknin, Search Button -->
+          <div class="form-row">
+            <div class="form-group">
+              <label>ژمارەی ئوتومبێل</label>
+              <input type="text" id="cd-carNo" maxlength="8" required
+                placeholder="e.g. 77481AB"
+                inputmode="latin" lang="en" autocapitalize="characters" spellcheck="false"
+                style="text-transform: uppercase; letter-spacing: 2px; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.95rem; direction: ltr; text-align: left; padding: 0.5rem;"
+                oninput="if(window.__forceEnglishCarNo) window.__forceEnglishCarNo(this)">
+            </div>
+            <div class="form-group">
+              <label>بەش</label>
+              <select id="cd-bash" dir="rtl" style="cursor: pointer; font-size: 0.9rem; font-weight: 500; padding: 0.5rem;">
+                <option value="">-- هەڵبژێرە --</option>
+                <option value="تایبەت">تایبەت</option>
+                <option value="بار">بار</option>
+                <option value="بار-پاشگر">بار-پاشگر</option>
+                <option value="بار-پاشگر2">بار-پاشگر2</option>
+                <option value="بار-پاشگر3">بار-پاشگر3</option>
+                <option value="بیناسازی">بیناسازی</option>
+                <option value="کرێ">کرێ</option>
+                <option value="ماتۆڕ">ماتۆڕ</option>
+                <option value="میری">میری</option>
+                <option value="جۆری تر">جۆری تر</option>
+                <option value="ناوخۆ">ناوخۆ</option>
+                <option value="هاتووچۆ">هاتووچۆ</option>
+                <option value="کشتوکاڵی">کشتوکاڵی</option>
+              </select>
+            </div>
+            <div class="form-group" style="position: relative;">
+              <label>پارێزگا</label>
+              <div class="custom-combobox-wrap" id="cd-plet-combobox-wrap">
+                <input type="text" id="cd-plet" dir="rtl" required placeholder="بنووسە یان هەڵبژێرە..." autocomplete="off" class="kurdish-input" style="cursor: pointer; font-size: 0.9rem; font-weight: 500; padding: 0.5rem;">
+                <button type="button" class="combobox-arrow-btn" id="cd-plet-arrow-btn" tabindex="-1" style="padding: 0 0.5rem;">▼</button>
+                <div id="cd-plet-dropdown-menu" class="custom-dropdown-menu" style="display: none;"></div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>پشکنینی</label>
+              <select id="cd-N_pshknin" dir="rtl" required style="cursor: pointer; font-size: 0.9rem; font-weight: 500; padding: 0.5rem;">
+                <option value="">-- هەڵبژێرە --</option>
+                <option value="یەکەم">یەکەم</option>
+                <option value="دووەم">دووەم</option>
+                <option value="سێهەم">سێهەم</option>
+                <option value="چوارەم">چوارەم</option>
+              </select>
+            </div>
+            <div class="form-group" style="display: flex; flex-direction: column; justify-content: flex-end;">
+              <label style="visibility: hidden;">گەڕان</label>
+              <button type="button" id="btn-search-car" class="btn" style="background: var(--accent-blue); color: white; width: 100%; padding: 0.5rem; font-size: 0.95rem; font-weight: bold; border-radius: 6px; height: 38px;">
+                <i data-lucide="search" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle;"></i>
+                گەڕان
+              </button>
+            </div>
+          </div>
+
+          <!-- Row 2: driverName, mobile, address -->
+          <div class="form-row">
+            <div class="form-group" style="grid-column: span 2;">
+              <label>ناوی شۆفێر</label>
+              <input type="text" id="cd-driverName" dir="rtl" required placeholder="ناوی شۆفێر" class="kurdish-input" style="font-size: 0.9rem; font-weight: 500; padding: 0.5rem;">
+            </div>
+            <div class="form-group" style="grid-column: span 1;">
+              <label>ژمارەی مۆبایل</label>
+              <input type="text" id="cd-mobile" maxlength="11" required
+                placeholder="07501234567" inputmode="numeric"
+                style="letter-spacing: 1px; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.95rem; direction: ltr; text-align: left; padding: 0.5rem;"
+                oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+            </div>
+            <div class="form-group" style="position: relative; grid-column: span 2;">
+              <label>ناونیشان</label>
+              <div class="custom-combobox-wrap" id="cd-address-combobox-wrap">
+                <input type="text" id="cd-address" dir="rtl" required placeholder="بنووسە یان هەڵبژێرە..." autocomplete="off" class="kurdish-input" style="cursor: pointer; font-size: 0.9rem; font-weight: 500; padding: 0.5rem;">
+                <button type="button" class="combobox-arrow-btn" id="cd-address-arrow-btn" tabindex="-1" style="padding: 0 0.5rem;">▼</button>
+                <div id="cd-address-dropdown-menu" class="custom-dropdown-menu" style="display: none;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Row 3: chassis, color, gearType, fuelType, pistons -->
+          <div class="form-row" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+            <!-- Top line (2 items) -->
+            <div class="form-group" style="flex: 1 1 48%;">
+              <label>ژمارەی شاصی</label>
+              <input type="text" id="cd-chassis" required
+                placeholder="نموونە: WBA..."
+                inputmode="latin" lang="en" autocapitalize="characters" spellcheck="false"
+                style="text-transform: uppercase; letter-spacing: 2px; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.95rem; direction: ltr; text-align: left; padding: 0.5rem;"
+                oninput="this.value = this.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase()">
+            </div>
+            <div class="form-group" style="flex: 1 1 48%; position: relative;">
+              <label>ڕەنگ</label>
+              <div class="custom-combobox-wrap" id="cd-color-combobox-wrap">
+                <input type="text" id="cd-color" dir="rtl" required placeholder="بنووسە..." autocomplete="off" class="kurdish-input" style="cursor: pointer; font-size: 0.9rem; font-weight: 500; padding: 0.5rem;">
+                <button type="button" class="combobox-arrow-btn" id="cd-color-arrow-btn" tabindex="-1" style="padding: 0 0.5rem;">▼</button>
+                <div id="cd-color-dropdown-menu" class="custom-dropdown-menu" style="display: none;"></div>
+              </div>
+            </div>
+            <!-- Line break -->
+            <div style="flex-basis: 100%; height: 0; margin: 0; padding: 0;"></div>
+            <!-- Bottom line (3 items) -->
+            <div class="form-group" style="flex: 1 1 31%;">
+              <label>جۆری گێڕ</label>
+              <select id="cd-gearType" dir="rtl" required style="cursor: pointer; font-size: 0.9rem; font-weight: 500; padding: 0.5rem;">
+                <option value="">-- هەڵبژێرە --</option>
+                <option value="ئۆتۆماتیک">ئۆتۆماتیک</option>
+                <option value="عادی">عادی</option>
+                <option value="کارەبایی">کارەبایی</option>
+                <option value="هایبرد">هایبرد</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex: 1 1 31%;">
+              <label>سوتەمەنی</label>
+              <select id="cd-fuelType" dir="rtl" required style="cursor: pointer; font-size: 0.9rem; font-weight: 500; padding: 0.5rem;">
+                <option value="">-- هەڵبژێرە --</option>
+                <option value="بەنزین">بەنزین</option>
+                <option value="گاز">گاز</option>
+                <option value="غاز">غاز</option>
+                <option value="کارەبایی">کارەبایی</option>
+                <option value="جۆرى تر">جۆرى تر</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex: 1 1 31%;">
+              <label>بستۆن</label>
+              <input type="text" id="cd-pistons" required placeholder="4" inputmode="numeric" maxlength="2" style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.95rem; direction: ltr; text-align: left; padding: 0.5rem;" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+            </div>
+          </div>
+
+          <!-- Row 4: inspector, inspectionPrice, inspectionResult -->
+          <div class="form-row">
+            <div class="form-group" style="grid-column: span 2;">
+              <label>ناوی پشکنەر</label>
+              <input type="text" id="cd-inspector" disabled dir="rtl" class="kurdish-input" value="پشکنەری سەرەکی" style="opacity: 0.7; cursor: not-allowed; background: rgba(0,0,0,0.2); padding: 0.5rem; font-size: 0.9rem;">
+            </div>
+            <div class="form-group" style="grid-column: span 1;">
+              <label>نرخی پشکنین</label>
+              <select id="cd-inspectionPrice" dir="rtl" required style="cursor: pointer; font-size: 0.9rem; font-weight: 500; padding: 0.5rem;">
+                <option value="">-- هەڵبژێرە --</option>
+                <option value="0">0</option>
+                <option value="5000">5000</option>
+                <option value="6250">6250</option>
+                <option value="7500">7500</option>
+                <option value="8000">8000</option>
+                <option value="10000">10000</option>
+                <option value="11500">11500</option>
+                <option value="12000">12000</option>
+                <option value="12500">12500</option>
+                <option value="15000">15000</option>
+                <option value="16000">16000</option>
+                <option value="17500">17500</option>
+                <option value="18000">18000</option>
+                <option value="20000">20000</option>
+                <option value="22500">22500</option>
+                <option value="23000">23000</option>
+                <option value="25000">25000</option>
+                <option value="27500">27500</option>
+                <option value="30000">30000</option>
+                <option value="35000">35000</option>
+                <option value="40000">40000</option>
+                <option value="45000">45000</option>
+                <option value="50000">50000</option>
+                <option value="55000">55000</option>
+                <option value="60000">60000</option>
+                <option value="65000">65000</option>
+                <option value="70000">70000</option>
+                <option value="75000">75000</option>
+              </select>
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label>ئەنجامی پشکنین</label>
+              <select id="cd-inspectionResult" dir="rtl" required style="cursor: pointer; font-size: 0.9rem; font-weight: 500; padding: 0.5rem;">
+                <option value="">-- هەڵبژێرە --</option>
+                <option value="دەرچووە">دەرچووە</option>
+                <option value="دەرنەچووە">دەرنەچووە</option>
+                <option value="دەرنەچووە+ تێبینی">دەرنەچووە+ تێبینی</option>
+                <option value="دەرچووە + تێبینی">دەرچووە + تێبینی</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Row 5: barcode, notes -->
+          <div class="form-row">
+            <div class="form-group" style="grid-column: span 2;">
+              <label>بارکۆد</label>
+              <input type="text" id="cd-barcode" required
+                placeholder="بارکۆد"
+                inputmode="latin" lang="en"
+                style="letter-spacing: 1px; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.95rem; direction: ltr; text-align: left; padding: 0.5rem;">
+            </div>
+            <div class="form-group" style="grid-column: span 3;">
+              <label>تێبینی</label>
+              <textarea id="cd-notes" dir="rtl" placeholder="تێبینییەکانت لێرە بنووسە..." class="kurdish-input" style="font-size: 0.9rem; font-weight: 500; min-height: 40px; resize: vertical; padding: 0.5rem; border-radius: 6px;"></textarea>
+            </div>
+          </div>
+
+          <!-- Row 6: Dates -->
+          <div class="form-row">
+            <div class="form-group" style="grid-column: span 2;">
+              <label>بەرواری پشکنین</label>
+              <input type="date" id="cd-date_" readonly tabindex="-1" style="font-size: 0.9rem; font-weight: 500; opacity: 0.75; cursor: not-allowed; background: rgba(0, 0, 0, 0.2); padding: 0.5rem;">
+            </div>
+            <div class="form-group" style="grid-column: span 3;">
+              <label>بەسەرچوون</label>
+              <input type="text" id="cd-expiryDate" required readonly tabindex="-1" style="font-size: 0.9rem; font-weight: 500; opacity: 0.75; cursor: not-allowed; background: rgba(0, 0, 0, 0.2); padding: 0.5rem;">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 0.5rem;">
+            <button type="submit" class="btn btn-primary" style="padding: 0.8rem; font-size: 1rem; width: 100%;">
+              <i data-lucide="save"></i>
+              <span>پاشەکەوتکردن</span>
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </section>
+
+    <!-- TAB 7: SYSTEM SOFTWARE AUTO-UPDATER -->
+    <section id="view-system-update" class="page-view">
+      <div class="glass-card" style="border-color: rgba(34, 211, 238, 0.35);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
+          <div>
+            <h2 class="card-title" style="font-size:1.3rem; margin-bottom:0.3rem;">
+              <i data-lucide="refresh-cw" style="color: var(--accent-cyan); width:26px; height:26px;"></i>
+              <span>نوێکردنەوەی سۆفتوێری بەرنامە (Auto Updater)</span>
+            </h2>
+            <p class="card-subtitle" style="margin:0;">پشکنین و نوێکردنەوەی بەرنامەکە بە یەک کلیک لە دوورەوە بێ پێویستی بە ئەنی دیسک یان دەستکاری فایلەکان</p>
+          </div>
+          <div style="display:flex; align-items:center; gap:0.5rem; background:rgba(6,9,16,0.7); padding:0.5rem 1rem; border-radius:10px; border:1px solid var(--border-color);">
+            <span style="font-size:0.78rem; color:var(--text-muted);">وەشانی ئێستا:</span>
+            <span id="update-page-version-badge" style="font-weight:800; color:var(--accent-cyan); font-size:1rem;">v1.1.0</span>
+          </div>
+        </div>
+
+        <!-- Status and Action Control Box -->
+        <div style="background: rgba(12, 19, 36, 0.9); border: 1.5px solid rgba(255,255,255,0.08); border-radius: var(--radius-md); padding: 2rem 1.5rem; margin-bottom: 1.5rem; text-align: center;">
+          <div style="width: 72px; height: 72px; margin: 0 auto 1.25rem; border-radius: 50%; background: rgba(34, 211, 238, 0.1); border: 2px solid rgba(34, 211, 238, 0.4); display: flex; align-items: center; justify-content: center;">
+            <i data-lucide="refresh-cw" id="update-center-icon" style="width: 32px; height: 32px; color: var(--accent-cyan);"></i>
+          </div>
+
+          <h3 id="update-main-status-title" style="font-size: 1.2rem; font-weight: 800; margin-bottom: 0.5rem; color: #fff;">
+            ئایا دەتەوێت پشکنین بۆ نوێترین وەشانی بەرنامەکە بکەیت؟
+          </h3>
+          <p id="update-main-status-desc" style="font-size: 0.88rem; color: var(--text-muted); max-width: 600px; margin: 0 auto 1.5rem; line-height: 1.6;">
+            کاتێک کلیک لەسەر دوگمەی خوارەوە دەکەیت، بەرنامەکە پەیوەندی بە سێرڤەری سەرەکی دەکات و ئەگەر هەر گۆڕانکاری یان باشترکردنێک هەبێت خۆکارانە دایدەبەزێنێت.
+          </p>
+
+          <!-- Buttons Row -->
+          <div style="display: flex; justify-content: center; gap: 0.85rem; flex-wrap: wrap;" id="update-buttons-container">
+            <button type="button" id="btn-start-system-update" class="btn" style="background: linear-gradient(135deg, #0284c7, #0369a1); color: #fff; font-weight: 800; font-size: 1rem; padding: 0.85rem 2rem; box-shadow: 0 4px 20px rgba(2, 132, 199, 0.4); min-width: 240px;">
+              <i data-lucide="cloud-download"></i>
+              <span>🚀 پشکنین و نوێکردنەوەی ئێستا</span>
+            </button>
+
+            <button type="button" id="btn-force-system-update" class="btn btn-secondary" style="font-size: 0.88rem; padding: 0.85rem 1.4rem;">
+              <i data-lucide="download"></i>
+              <span>⚡ دووبارە داگرتنەوەی هەموو فایلەکان</span>
+            </button>
+          </div>
+
+          <!-- Interactive Progress & Alert Box -->
+          <div id="update-feedback-box" style="display: none; margin-top: 1.5rem; padding: 1.2rem; border-radius: var(--radius-sm); font-size: 0.92rem; text-align: right; direction: rtl; line-height: 1.7;">
+          </div>
+        </div>
+
+        <!-- Information & Instructions for Operators -->
+        <div style="background: rgba(251, 191, 36, 0.06); border: 1px solid rgba(251, 191, 36, 0.25); border-radius: var(--radius-sm); padding: 1.1rem 1.35rem;">
+          <div style="display:flex; align-items:center; gap:0.5rem; font-weight:700; color:var(--accent-amber); font-size:0.92rem; margin-bottom:0.4rem;">
+            <i data-lucide="info" style="width:16px;height:16px;"></i>
+            <span>ڕێنمایی بۆ بەکارهێنەران و کارمەندان:</span>
+          </div>
+          <ul style="font-size:0.84rem; color:var(--text-label); line-height:1.75; padding-right:1.2rem; margin:0;">
+            <li>هەر کاتێک بەڕێوەبەر ئاگاداری کردیتەوە کە گۆڕانکاری نوێ کراوە، تەنها وەرە ئەم بەشە و دوگمەی (🚀 پشکنین و نوێکردنەوە) دابگرە.</li>
+            <li>لەکاتی ئەپدەیتدا کارەکان بۆ چەند چرکەیەک دەوەستێت بۆ داگرتن و جێبەجێکردنی فایلە نوێیەکان، پاشان بەرنامەکە خۆی نوێ دەبێتەوە.</li>
+            <li>پێویست بە هیچ فەرمانێک، هیچ بەرنامەیەکی دەرەکی، یان AnyDesk ناکات.</li>
+          </ul>
+        <!-- About System Info Card -->
+        <div class="about-creator-card">
+          <div style="width: 54px; height: 54px; border-radius: 14px; background: linear-gradient(135deg, #0284c7, #6366f1); display: flex; align-items: center; justify-content: center; font-size: 1.35rem; color: #fff; font-weight: 900; box-shadow: 0 4px 16px rgba(2, 132, 199, 0.4); border: 2px solid rgba(255,255,255,0.2);">
+            NQ
+          </div>
+          <div style="direction: rtl; text-align: right;">
+            <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem; flex-wrap:wrap;">
+              <span style="font-size:1.05rem; font-weight:800; color:#fff;">سیستەمی تۆماری تاقیگەکان (Car Management System)</span>
+              <span style="font-size:0.72rem; background:rgba(34,211,238,0.15); border:1px solid rgba(34,211,238,0.4); color:var(--accent-cyan); padding:0.15rem 0.55rem; border-radius:999px; font-weight:700;">وەشانی فەرمی</span>
+            </div>
+            <p style="margin:0; font-size:0.85rem; color:var(--text-label); line-height:1.6;">
+              دیزاین، ئەندازیاری داتابەیس و گەشەپێدانی تەواو: <strong style="color:var(--accent-cyan); font-weight:800;">نەژاد قادر محمد</strong>
+            </p>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:0.25rem; align-items:center;">
+            <div style="font-size:0.72rem; color:var(--text-muted);">بڕوانامەی سیستەم</div>
+            <div style="font-size:0.8rem; font-weight:800; color:#34d399; display:flex; align-items:center; gap:0.3rem;">
+              <span>Verified Developer</span>
+              <i data-lucide="badge-check" style="width:16px;height:16px;"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: ABOUT ME (دەربارەی من — نەژاد قادر محمد) -->
+    <section id="view-about-me" class="page-view">
+      <div class="about-me-container">
+        <!-- Hero Profile Card -->
+        <div class="about-me-hero-card">
+          <!-- Profile Avatar -->
+          <div class="about-avatar-box">
+            <img src="profile-avatar.jpg" alt="نەژاد قادر محمد" class="about-avatar-img" onerror="this.onerror=null; this.src='app-icon.png';">
+            <div class="about-avatar-status">
+              <span>چالاک</span>
+            </div>
+          </div>
+
+          <!-- Main Info -->
+          <div class="about-info-main">
+            <div class="about-name-row">
+              <h1 class="about-main-name">نەژاد قادر محمد</h1>
+              <div class="about-badge-verified">
+                <i data-lucide="badge-check" style="width: 15px; height: 15px;"></i>
+                <span>پەرەپێدەر و ئەندازیاری سیستم</span>
+              </div>
+            </div>
+
+            <div class="about-role-primary">
+              <i data-lucide="building-2" style="width: 20px; height: 20px; color: #fbbf24; flex-shrink: 0;"></i>
+              <span>کارمەندی پێشکەوتووی هاتووچۆی سلێمانی</span>
+            </div>
+
+            <div class="about-role-secondary">
+              <i data-lucide="cpu" style="width: 18px; height: 18px; color: var(--accent-cyan); flex-shrink: 0;"></i>
+              <span>شارەزا لە بواری ئای تی و سیستم (IT &amp; Systems Specialist)</span>
+            </div>
+          </div>
+
+          <!-- Official Traffic IT Logo -->
+          <div class="about-logo-box">
+            <img src="traffic-it-logo.jpg" alt="لۆگۆی فەرمی هاتووچۆ و ئای تی" class="about-logo-img" onerror="this.onerror=null; this.src='app-icon.png';">
+            <div class="about-logo-caption">هاتووچۆی سلێمانی • IT</div>
+          </div>
+        </div>
+
+        <!-- Contact & Direct Communication Cards -->
+        <div class="about-contact-grid">
+          <!-- Phone Call Card -->
+          <div class="about-contact-card">
+            <div class="about-contact-icon phone">
+              <i data-lucide="phone-call"></i>
+            </div>
+            <div class="about-contact-details">
+              <div class="about-contact-label">ژمارەی مۆبایل (پەیوەندی ڕاستەوخۆ)</div>
+              <div class="about-contact-val">07726171818</div>
+              <div class="about-contact-actions">
+                <a href="tel:07726171818" class="btn-contact-action call">
+                  <i data-lucide="phone" style="width:14px;height:14px;"></i>
+                  <span>پەیوەندی بکە</span>
+                </a>
+                <button type="button" class="btn-contact-action copy" id="btn-copy-about-phone">
+                  <i data-lucide="copy" style="width:14px;height:14px;"></i>
+                  <span>کۆپیکردن</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- WhatsApp Card -->
+          <div class="about-contact-card">
+            <div class="about-contact-icon whatsapp">
+              <i data-lucide="message-circle"></i>
+            </div>
+            <div class="about-contact-details">
+              <div class="about-contact-label">واتس ئەپ (WhatsApp)</div>
+              <div class="about-contact-val">07726171818</div>
+              <div class="about-contact-actions">
+                <a href="https://wa.me/9647726171818" target="_blank" rel="noopener noreferrer" class="btn-contact-action whatsapp">
+                  <i data-lucide="send" style="width:14px;height:14px;"></i>
+                  <span>نامە بنێرە لە واتس ئەپ</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Specialization, Engineering & Skills -->
+        <div class="about-skills-section">
+          <div class="about-section-header">
+            <i data-lucide="layers" style="color: var(--primary);"></i>
+            <span>تایبەتمەندی و بوارەکانی شارەزایی</span>
+          </div>
+
+          <div class="about-skills-grid">
+            <div class="about-skill-item">
+              <div class="about-skill-icon">
+                <i data-lucide="server" style="color: var(--accent-cyan); width: 20px; height: 20px;"></i>
+              </div>
+              <div>
+                <div class="about-skill-title">ئەندازیاری داتابەیس و سێرڤەر</div>
+                <div class="about-skill-desc">دیزاین و بەڕێوەبردنی سێرڤەری SQL Server بە شێوازی پرۆفیشناڵ و بەستنەوەی تۆڕی لۆکاڵ و دەرەکی.</div>
+              </div>
+            </div>
+
+            <div class="about-skill-item">
+              <div class="about-skill-icon">
+                <i data-lucide="car" style="color: #fbbf24; width: 20px; height: 20px;"></i>
+              </div>
+              <div>
+                <div class="about-skill-title">سیستەمی تاقیگە و پشکنینی ئۆتۆمبێل</div>
+                <div class="about-skill-desc">دروستکردنی خێراترین سیستەمی تۆمارکردنی زانیاری، کامێرا و پشکنینی ئۆتۆمبێل بە کوالیتی بەرز.</div>
+              </div>
+            </div>
+
+            <div class="about-skill-item">
+              <div class="about-skill-icon">
+                <i data-lucide="tablet-smartphone" style="color: #34d399; width: 20px; height: 20px;"></i>
+              </div>
+              <div>
+                <div class="about-skill-title">ئەپڵیکەیشنی تابڵێت و مۆبایل</div>
+                <div class="about-skill-desc">پەرەپێدانی بەرنامەی دەستی (Android & Tablets) بۆ ئاسانکاری و خێرایی کارەکانی کارمەندان لە مەیداندا.</div>
+              </div>
+            </div>
+
+            <div class="about-skill-item">
+              <div class="about-skill-icon">
+                <i data-lucide="shield-check" style="color: #818cf8; width: 20px; height: 20px;"></i>
+              </div>
+              <div>
+                <div class="about-skill-title">ئاسایشی داتا و نوێکردنەوەی خۆکار</div>
+                <div class="about-skill-desc">پاراستنی داتاکان بە سیستەمی Authentication و ئەپدەیتی یەک کلیکی خۆکار لەسەر هەموو ئامێرەکان.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOGIN VIEW -->
+    <section id="view-login" class="page-view active">
+      <div style="max-width:420px; margin:0 auto;">
+        <div class="glass-card">
+          <h2 class="card-title">
+            <i data-lucide="shield-check" style="color: var(--accent-cyan);"></i>
+            <span>Login</span>
+          </h2>
+          <p class="card-subtitle">Enter credentials to access the system.</p>
+
+          <form id="login-form">
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+              <label>Username</label>
+              <input type="text" id="login-username" required placeholder="Enter username">
+            </div>
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+              <label>Password</label>
+              <input type="password" id="login-password" required placeholder="Enter password">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;">
+              <i data-lucide="log-in"></i>
+              <span>Sign In</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Developer Credit Card Under Login -->
+        <div class="developer-login-card">
+          <div class="dev-shield-avatar">
+            <img src="traffic-it-logo.jpg" alt="Logo" style="width:100%;height:100%;border-radius:10px;object-fit:cover;" onerror="this.onerror=null; this.parentElement.innerText='NQ';">
+          </div>
+          <div class="dev-info-box">
+            <span class="dev-info-subtitle">دیزاین و پەرەپێدانی سیستم:</span>
+            <strong class="dev-info-name">نەژاد قادر محمد</strong>
+            <span style="font-size: 0.72rem; color: var(--accent-cyan); display: block; margin-top: 2px;">کارمەندی پێشکەوتووی هاتووچۆی سلێمانی • IT</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ADMIN SECURITY CHALLENGE MODAL (PROMPTS ON SQL SERVER TAB CLICK) -->
+    <div id="admin-security-modal" class="custom-modal-backdrop" style="display:none;">
+      <div class="custom-modal-card">
+        <div class="modal-header-security" style="display:flex; align-items:center; gap:0.9rem; padding-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.08);">
+          <div class="security-shield-icon" style="
+            width:48px; height:48px; border-radius:12px;
+            background:linear-gradient(135deg, rgba(239,68,68,0.2), rgba(245,158,11,0.2));
+            border:1.5px solid rgba(239,68,68,0.5);
+            display:flex; align-items:center; justify-content:center;
+            font-size:1.5rem; flex-shrink:0;
+          ">🛡️</div>
+          <div>
+            <h3 style="margin:0; font-size:1.05rem; color:#fff; font-weight:700;">ڕێگەپێدانی ئەدمین (Admin Access)</h3>
+            <p style="margin:4px 0 0; font-size:0.78rem; color:var(--text-muted);">
+              بۆ بینین و دەستکاری ڕێکخستنەکانی سێرڤەر، پێویستە ناوی بەکارهێنەر و تێپەڕەوشەی ئەدمین بنووسیت.
+            </p>
+          </div>
+        </div>
+
+        <form id="admin-security-auth-form" style="margin-top:1.25rem;">
+          <div class="form-group" style="margin-bottom:1rem;">
+            <label>Admin Username (ناوی ئەدمین)</label>
+            <input type="text" id="sec-admin-user" required placeholder="admin" value="admin" style="font-weight:600;">
+          </div>
+
+          <div class="form-group" style="margin-bottom:1.25rem;">
+            <label>Admin Password (وشەی نهێنی ئەدمین)</label>
+            <div class="password-input-wrap">
+              <input type="password" id="sec-admin-pass" required placeholder="Enter Admin Password (e.g. Na2652014Va)">
+              <button type="button" class="password-toggle-btn" id="btn-toggle-sec-admin-pass" title="Toggle password visibility">
+                <i data-lucide="eye" style="width:16px;height:16px;"></i>
+              </button>
+            </div>
+          </div>
+
+          <div id="sec-auth-error-msg" style="display:none; color:#f87171; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:6px; padding:0.6rem; font-size:0.82rem; margin-bottom:1.25rem; text-align:center; font-weight:600;"></div>
+
+          <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-admin-auth">✕ داخستن</button>
+            <button type="submit" class="btn btn-primary" id="btn-confirm-admin-auth" style="min-width:150px;">
+              <i data-lucide="shield-check"></i>
+              <span>چوونەژوورەوە</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js?v=12"></script>
+</body>
+</html>

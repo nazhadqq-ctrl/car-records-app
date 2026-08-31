@@ -1,2 +1,10 @@
-# car-records-app
-IMAGE_CAR
+# سیستەمی تۆماری تاقیگەکان (Car Management & Inspection System)
+
+سیستەمی پێشکەوتووی تۆمارکردن، پشکنین و بەڕێوەبردنی ئۆتۆمبێل بە بەکارهێنانی Microsoft SQL Server و تەکنەلۆژیای سەردەمی وێب و ئەندرۆید.
+
+---
+
+## 👑 زانیاری گەشەپێدەر و خاوەندارێتی (Developer & Copyright)
+- **دیزاین، ئەندازیاری و پرۆگرامسازی:** **NAZHAD Q. MAHAMMED**
+- **مافی لەبەرگرتنەوە:** هەموو مافەکانی پارێزراوە © 2026 NAZHAD Q. MAHAMMED (All Rights Reserved)
+- **وەشان:** 1.1.0 (Build 110)

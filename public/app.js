@@ -95,6 +95,8 @@ document.addEventListener('DOMContentLoaded', () => {
     'scanner': document.getElementById('view-scanner'),
     'defects': document.getElementById('view-defects'),
     'car-details': document.getElementById('view-car-details'),
+    'system-update': document.getElementById('view-system-update'),
+    'about-me': document.getElementById('view-about-me'),
     'login': document.getElementById('view-login')
   };
 
@@ -269,6 +271,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const tabScannerBtn = document.getElementById('tab-scanner-btn');
       const tabDefectsBtn = document.getElementById('tab-defects-btn');
       const tabCarDetailsBtn = document.getElementById('tab-car-details-btn');
+      const tabUpdateBtn = document.getElementById('tab-update-btn');
+      const tabAboutBtn = document.getElementById('tab-about-btn');
+
+      if (tabUpdateBtn) tabUpdateBtn.style.display = 'inline-flex';
+      if (tabAboutBtn) tabAboutBtn.style.display = 'inline-flex';
+
+      const headerUpdateBtn = document.getElementById('header-update-btn');
+      if (headerUpdateBtn) {
+        headerUpdateBtn.onclick = () => showView('system-update');
+      }
 
       if (isAdmin) {
         if (tabSearchBtn) tabSearchBtn.style.display = '';
@@ -279,7 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tabDefectsBtn) tabDefectsBtn.style.display = '';
         if (tabCarDetailsBtn) tabCarDetailsBtn.style.display = '';
       } else {
-        // Regular Users: Show ONLY Image Scanner & Car Defects buttons at the top
+        // Regular Users: Show Scanner, Defects, Car Details, and System Update
         if (tabSearchBtn) tabSearchBtn.style.display = 'none';
         if (tabSqlBtn) tabSqlBtn.style.display = 'none';
         if (tabSetupBtn) tabSetupBtn.style.display = 'none';
@@ -1143,7 +1155,7 @@ document.addEventListener('DOMContentLoaded', () => {
     "فحص موقت نینوى", "فحص مؤقت الانبار", "فحص مؤقت انبار", "فحص مؤقت بابل", "فحص مؤقت بغداد",
     "فحص مؤقت زیقار", "فحص مؤقت صلاح الدین", "فحص مؤقت قادسیة", "فحص مؤقت کربلاء",
     "فحص مؤقت میسان", "فحص مؤقت نینوى", "فحص مؤقت واسط", "کارەبا", "کەربەلا", "کشتوکاڵ",
-    "کشتوکاڵ و سەرچاوەکانی ئاو", "گواستنەوە و گەیاندن", "مثنى", "میسان", "ناوخۆ", "نینوى",
+    "کشتوکاڵ و سەرچاوەکانی ئاو", "گواستنەوە و گەیاندن", "مثنى", "میسان", "ناوخۆ", "��ینوى",
     "هاتووچۆ", "واست", "وەزارەتی پێشمەرگە", "ئاوەدانکردنەوە", "ئەوروپی", "تصدیر الامارات",
     "مافی مرۆڤ", "وەزیران", "پلان دانان", "دەستەی ژینگە"
   ];
@@ -1904,8 +1916,9 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     </div>
 
-    <div class="print-stamp">
-      Car Records System — Taqega Database — Page 1 of 1 — ${printTime}
+    <div class="print-stamp" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; font-size:0.75rem; color:#64748b; border-top:1px dashed #cbd5e1; padding-top:0.6rem; margin-top:1rem;">
+      <div>Car Records System — Taqega Database — Page 1 of 1 — ${printTime}</div>
+      <div style="direction:rtl; font-weight:600;">دیزاین و پەرەپێدان: نەژاد قادر محمد — هاتووچۆی سلێمانی</div>
     </div>
   </div>
 </body>
@@ -2408,7 +2421,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!validateCarDetailsFields()) return;
 
       if (state.queuedDefects.length === 0) {
-        alert('⚠️ تکایە لانیکەم یەک کەموکوڕی زیاد بکە بۆ لیست بەرلەوەی پاشەکەوتی بکەیت!');
+        alert('⚠️ تکایە لانیکەم یەک کە��وکوڕی زیاد بکە بۆ لیست بەرلەوەی پاشەکەوتی بکەیت!');
         if (dfXxInput) dfXxInput.focus();
         return;
       }
@@ -2581,6 +2594,221 @@ document.addEventListener('DOMContentLoaded', () => {
         cdExpiryDate.value = `${yyyy}-${mm}-${dd}`;
       } else {
         cdExpiryDate.value = '';
+      }
+    });
+  }
+
+  // ─── Auto-Updater Frontend Integration ───
+  const updatePageVersionBadge = document.getElementById('update-page-version-badge');
+  const appCurrentVersionLabel = document.getElementById('app-current-version-label');
+  const btnStartSystemUpdate = document.getElementById('btn-start-system-update');
+  const btnForceSystemUpdate = document.getElementById('btn-force-system-update');
+  const btnCheckUpdate = document.getElementById('btn-check-update');
+
+  async function loadSystemVersion() {
+    try {
+      const res = await fetch('/api/system/version');
+      if (res.ok) {
+        const data = await res.json();
+        const verStr = `v${data.version || '1.1.0'}`;
+        if (appCurrentVersionLabel) appCurrentVersionLabel.textContent = `${verStr} (Build ${data.build || 100})`;
+        if (updatePageVersionBadge) updatePageVersionBadge.textContent = verStr;
+      }
+    } catch (e) {}
+  }
+  loadSystemVersion();
+
+  async function performSystemUpdate(isForce = false) {
+    const feedbackBox = document.getElementById('update-feedback-box');
+    const updateStatusMsg = document.getElementById('update-status-msg');
+    const centerIcon = document.getElementById('update-center-icon');
+    const titleEl = document.getElementById('update-main-status-title');
+    const descEl = document.getElementById('update-main-status-desc');
+
+    // 1. Pause actions and show loading state
+    if (btnStartSystemUpdate) btnStartSystemUpdate.disabled = true;
+    if (btnForceSystemUpdate) btnForceSystemUpdate.disabled = true;
+    if (btnCheckUpdate) btnCheckUpdate.disabled = true;
+
+    if (centerIcon) {
+      centerIcon.style.animation = 'spin 1s linear infinite';
+    }
+
+    const showLoading = (el) => {
+      if (!el) return;
+      el.style.display = 'block';
+      el.style.background = 'rgba(34, 211, 238, 0.12)';
+      el.style.border = '1.5px solid rgba(34, 211, 238, 0.4)';
+      el.style.color = '#38bdf8';
+      el.innerHTML = `
+        <div style="display:flex; align-items:center; gap:0.75rem; justify-content:center; padding:0.5rem 0;">
+          <span style="font-size:1.4rem;">⏳</span>
+          <span style="font-weight:700; font-size:0.95rem;">کەمێک چاوەڕوان بە... پەیوەندی بە سێرڤەری سەرەکی دەکرێت بۆ پشکنین و داگرتنی فایلە نوێیەکان...</span>
+        </div>
+      `;
+    };
+
+    showLoading(feedbackBox);
+    showLoading(updateStatusMsg);
+
+    try {
+      const res = await fetch('/api/system/check-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force: isForce })
+      });
+
+      let data;
+      const text = await res.text();
+      try {
+        data = JSON.parse(text);
+      } catch (jsonErr) {
+        if (res.status === 404 || text.includes('404')) {
+          throw new Error('سێرڤەری پرۆگرامەکە پێویستی بە یەکجار داخستن و کردنەوەیە (Restart) بۆ ئەوەی خزمەتگوزاری نوێکاری چالاک بێت.');
+        } else {
+          throw new Error(`وەڵامی سێرڤەر: ${text.substring(0, 80)}`);
+        }
+      }
+
+      if (data.success && data.hasUpdate) {
+        // Updated successfully
+        const successHtml = `
+          <div style="font-size:1.15rem; font-weight:800; margin-bottom:0.4rem; color:#34d399;">
+            🎉 پیرۆزە! سیستەمەکە بە سەرکەوتوویی نوێکرایەوە بۆ وەشانی (${escapeHtml(data.newVersion)})
+          </div>
+          <div style="font-size:0.88rem; color:var(--text-main); line-height:1.7;">
+            فایلە سەرەکییەکان نوێکرانەوە: <b>${escapeHtml((data.updatedFiles || []).join(', '))}</b><br>
+            <span style="color:var(--accent-cyan); font-weight:700;">🔄 بەرنامەکە دوای ٣ چرکە بە شێوەیەکی خۆکار ڕیفرێش دەبێت بۆ کەوتنەگەڕی گۆڕانکارییەکان...</span>
+          </div>
+        `;
+
+        const applySuccess = (el) => {
+          if (!el) return;
+          el.style.display = 'block';
+          el.style.background = 'rgba(16, 185, 129, 0.15)';
+          el.style.border = '1.5px solid rgba(16, 185, 129, 0.5)';
+          el.style.color = '#34d399';
+          el.innerHTML = successHtml;
+        };
+
+        applySuccess(feedbackBox);
+        applySuccess(updateStatusMsg);
+
+        if (titleEl) titleEl.textContent = '✅ نوێکاری بە سەرکەوتوویی تەواو بوو!';
+        if (descEl) descEl.textContent = 'سیستەمەکە گەیشتە نوێترین وەشان.';
+        loadSystemVersion();
+
+        // Auto reload after 3 seconds
+        setTimeout(() => {
+          window.location.reload();
+        }, 3000);
+
+      } else if (data.success && !data.hasUpdate) {
+        // Already latest version
+        const latestHtml = `
+          <div style="font-size:1.05rem; font-weight:800; margin-bottom:0.3rem; color:#38bdf8;">
+            ✅ سیستەمەکەت لەسەر نوێترین وەشانە (${escapeHtml(data.currentVersion)})
+          </div>
+          <div style="font-size:0.88rem; color:var(--text-main);">
+            ئەمە دوا گۆڕانکارییە و لە ئێستادا پێویست بە هیچ نوێکارییەک ناکات.
+          </div>
+        `;
+
+        const applyLatest = (el) => {
+          if (!el) return;
+          el.style.display = 'block';
+          el.style.background = 'rgba(56, 189, 248, 0.12)';
+          el.style.border = '1.5px solid rgba(56, 189, 248, 0.4)';
+          el.style.color = '#38bdf8';
+          el.innerHTML = latestHtml;
+        };
+
+        applyLatest(feedbackBox);
+        applyLatest(updateStatusMsg);
+
+        if (titleEl) titleEl.textContent = '✅ سیستەمەکەت نوێترین وەشانە';
+      } else {
+        // Error or failed
+        const errHtml = `
+          <div style="font-size:1.05rem; font-weight:800; margin-bottom:0.3rem; color:#f87171;">
+            ⚠️ نەتوانرا نوێکاری بکرێت
+          </div>
+          <div style="font-size:0.86rem; color:var(--text-main);">
+            ${escapeHtml(data.error || 'نەتوانرا پەیوەندی بە سێرڤەری نوێکاری بکرێت.')}<br>
+            تکایە دڵنیابەرەوە لە پەیوەندی هێڵی ئینتەرنێت و دووبارە هەوڵبدەرەوە.
+          </div>
+        `;
+
+        const applyErr = (el) => {
+          if (!el) return;
+          el.style.display = 'block';
+          el.style.background = 'rgba(239, 68, 68, 0.15)';
+          el.style.border = '1.5px solid rgba(239, 68, 68, 0.5)';
+          el.style.color = '#f87171';
+          el.innerHTML = errHtml;
+        };
+
+        applyErr(feedbackBox);
+        applyErr(updateStatusMsg);
+      }
+    } catch (err) {
+      const netErrHtml = `
+        <div style="font-size:1.05rem; font-weight:800; margin-bottom:0.3rem; color:#f87171;">
+          ⚠️ هەڵە لە پەیوەندی هێڵی ئینتەرنێت
+        </div>
+        <div style="font-size:0.86rem; color:var(--text-main);">
+          ${escapeHtml(err.message)}
+        </div>
+      `;
+      if (feedbackBox) {
+        feedbackBox.style.display = 'block';
+        feedbackBox.style.background = 'rgba(239, 68, 68, 0.15)';
+        feedbackBox.style.border = '1.5px solid rgba(239, 68, 68, 0.5)';
+        feedbackBox.innerHTML = netErrHtml;
+      }
+      if (updateStatusMsg) {
+        updateStatusMsg.style.display = 'block';
+        updateStatusMsg.style.background = 'rgba(239, 68, 68, 0.15)';
+        updateStatusMsg.style.border = '1.5px solid rgba(239, 68, 68, 0.5)';
+        updateStatusMsg.innerHTML = netErrHtml;
+      }
+    } finally {
+      if (btnStartSystemUpdate) btnStartSystemUpdate.disabled = false;
+      if (btnForceSystemUpdate) btnForceSystemUpdate.disabled = false;
+      if (btnCheckUpdate) btnCheckUpdate.disabled = false;
+      if (centerIcon) centerIcon.style.animation = '';
+      safeCreateIcons();
+    }
+  }
+
+  if (btnStartSystemUpdate) {
+    btnStartSystemUpdate.addEventListener('click', () => performSystemUpdate(false));
+  }
+  if (btnForceSystemUpdate) {
+    btnForceSystemUpdate.addEventListener('click', () => performSystemUpdate(true));
+  }
+  if (btnCheckUpdate) {
+    btnCheckUpdate.addEventListener('click', () => performSystemUpdate(false));
+  }
+
+  // Copy About Phone Number Listener
+  const btnCopyAboutPhone = document.getElementById('btn-copy-about-phone');
+  if (btnCopyAboutPhone) {
+    btnCopyAboutPhone.addEventListener('click', () => {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText('07726171818').then(() => {
+          const original = btnCopyAboutPhone.innerHTML;
+          btnCopyAboutPhone.innerHTML = '<i data-lucide="check" style="width:14px;height:14px;color:#34d399;"></i> <span>کۆپیکرا!</span>';
+          if (window.lucide) lucide.createIcons();
+          setTimeout(() => {
+            btnCopyAboutPhone.innerHTML = original;
+            if (window.lucide) lucide.createIcons();
+          }, 2000);
+        }).catch(() => {
+          alert('ژمارەی مۆبایل: 07726171818');
+        });
+      } else {
+        alert('ژمارەی مۆبایل: 07726171818');
       }
     });
   }
