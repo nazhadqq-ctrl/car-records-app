@@ -445,7 +445,7 @@
           </div>
 
           <div class="form-group full-width" style="margin-top: 1rem;">
-            <button type="submit" class="btn btn-primary" style="padding: 1.1rem; font-size: 1.05rem; width: 100%;">
+            <button type="button" id="btn-save-scanner" class="btn btn-primary" style="padding: 1.1rem; font-size: 1.05rem; width: 100%;">
               <i data-lucide="send"></i>
               <span>داگرتن بۆ پاشەکەوت</span>
             </button>
@@ -589,9 +589,6 @@
                     style="cursor: pointer; font-size: 0.95rem; font-weight: 500; padding-left: 45px;">
                   <button type="button" class="combobox-arrow-btn" id="defect-arrow-btn" tabindex="-1" title="کردنەوەی لیست">▼</button>
                   <div id="defect-dropdown-menu" class="custom-dropdown-menu" style="display: none; position: absolute; z-index: 999999 !important;"></div>
-                </div>
-              </div>
-
               <!-- Row 3: Prominent Add Button (ALWAYS VISIBLE & FULL WIDTH ON MOBILE) -->
               <div>
                 <button type="button" id="btn-add-defect-to-grid" class="btn" style="background: var(--accent-amber); color: #000; font-weight: 800; width: 100%; font-size: 1rem; padding: 0.85rem; box-shadow: 0 4px 16px rgba(251, 191, 36, 0.35);">
@@ -630,7 +627,7 @@
 
           <!-- BATCH SAVE BUTTON -->
           <div class="form-group full-width" style="margin-top: 1.25rem;">
-            <button type="submit" class="btn btn-primary" id="btn-save-all-defects" style="padding: 1.1rem; font-size: 1.05rem; width: 100%; background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; font-weight: 800;">
+            <button type="button" class="btn btn-primary" id="btn-save-all-defects" style="padding: 1.1rem; font-size: 1.05rem; width: 100%; background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; font-weight: 800;">
               <i data-lucide="database"></i>
               <span>💾 پاشەکەوتکردنی هەموو کەموکوڕییەکان بە یەک جار</span>
             </button>
@@ -906,7 +903,7 @@
           </div>
 
           <div class="form-group" style="margin-top: 0.5rem;">
-            <button type="submit" class="btn btn-primary" style="padding: 0.8rem; font-size: 1rem; width: 100%;">
+            <button type="button" id="btn-save-car-details" class="btn btn-primary" style="padding: 0.8rem; font-size: 1rem; width: 100%;">
               <i data-lucide="save"></i>
               <span>پاشەکەوتکردن</span>
             </button>
@@ -1192,6 +1189,6 @@
     </div>
   </main>
 
-  <script src="app.js?v=12"></script>
+  <script src="app.js?v=20260831-build150"></script>
 </body>
 </html>

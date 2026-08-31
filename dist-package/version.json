@@ -1,7 +1,7 @@
 {
-  "version": "1.2.4",
-  "build": 140,
+  "version": "1.2.5",
+  "build": 150,
   "developer": "نەژاد قادر محمد",
-  "description": "سیستەمی تۆماری تاقیگەکان — پەرەپێدانی قەڵغانی پاراستنی فۆڕمەکان و ڕێگری بنەڕەتی لە داخران و دەرچوون",
-  "lastSha": "root-shield-form-submit"
+  "description": "سیستەمی تۆماری تاقیگەکان — چارەسەری کۆتایی کێشەی پاشەکەوتکردن بە گۆڕینی دوگمە بۆ type=button و ڕێگری تەواو لە کەش",
+  "lastSha": "final-save-button-type-button"
 }

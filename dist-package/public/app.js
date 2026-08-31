@@ -1509,166 +1509,195 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ─── 4. CAR SCANNER FORM SUBMIT (#car-form — تۆمارکردنی زانیاری و وێنە) ───
-  const scannerCarForm = document.getElementById('car-form');
-  if (scannerCarForm) {
-    scannerCarForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
+  // ─── 4. CAR SCANNER FORM SUBMIT (#car-form & #btn-save-scanner — تۆمارکردنی زانیاری و وێنە) ───
+  async function handleScannerSave(e) {
+    if (e) e.preventDefault();
 
-      const carNoInput = document.getElementById('car-carNo');
-      const bashInput = document.getElementById('car-bash');
-      const pletInput = document.getElementById('car-plet');
-      const dateIntoInput = document.getElementById('car-date_into');
-      const notesInput = document.getElementById('car-notes');
+    const carNoInput = document.getElementById('car-carNo');
+    const bashInput = document.getElementById('car-bash');
+    const pletInput = document.getElementById('car-plet');
+    const dateIntoInput = document.getElementById('car-date_into');
+    const notesInput = document.getElementById('car-notes');
 
-      const carNo = carNoInput ? carNoInput.value.trim() : '';
-      const bash = bashInput ? bashInput.value.trim() : '';
-      const plet = pletInput ? pletInput.value.trim() : '';
-      const date_into = (dateIntoInput && dateIntoInput.value) ? dateIntoInput.value : new Date().toISOString().slice(0, 10);
-      const Nnote = (notesInput && notesInput.value) ? notesInput.value.trim() : null;
+    const carNo = carNoInput ? carNoInput.value.trim() : '';
+    const bash = bashInput ? bashInput.value.trim() : '';
+    const plet = pletInput ? pletInput.value.trim() : '';
+    const date_into = (dateIntoInput && dateIntoInput.value) ? dateIntoInput.value : new Date().toISOString().slice(0, 10);
+    const Nnote = (notesInput && notesInput.value) ? notesInput.value.trim() : null;
 
-      if (!carNo || !plet) {
-        alert('⚠️ تکایە ژمارەی ئۆتۆمبێل و ناوی پارێزگا بنووسە!');
-        return;
+    if (!carNo) {
+      alert('⚠️ تکایە ژمارەی ئۆتۆمبێل بنووسە!');
+      if (carNoInput) carNoInput.focus();
+      return;
+    }
+    if (!plet) {
+      alert('⚠️ تکایە ناوی پارێزگا یان شوێن هەڵبژێرە!');
+      if (pletInput) pletInput.focus();
+      return;
+    }
+
+    const payload = {
+      carNo,
+      bash,
+      plet,
+      pic: state.uploadedImageBase64 || null,
+      date_into,
+      Nnote,
+      uuser: (state.currentUser && state.currentUser.Username) ? state.currentUser.Username : 'کارمەند',
+      bar_: capturedGPS ? (capturedGPS.placeName || `GPS: ${capturedGPS.lat}, ${capturedGPS.lng}`) : null
+    };
+
+    const submitBtn = document.getElementById('btn-save-scanner') || (document.getElementById('car-form') ? document.getElementById('car-form').querySelector('button[type="submit"]') : null);
+    const origBtnContent = submitBtn ? submitBtn.innerHTML : '';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> <span>⏳ کەمێک چاوەڕوانبە... پاشەکەوتکردن</span>';
+      if (window.lucide) lucide.createIcons();
+    }
+
+    try {
+      const res = await authFetch('/api/car-records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        alert('✅ زانیاری و وێنەی ئۆتۆمبێل بە سەرکەوتوویی لە SQL Server پاشەکەوت کرا!');
+        state.lastCarRecord = payload;
+
+        // Clear inputs
+        if (carNoInput) carNoInput.value = '';
+        if (bashInput) bashInput.value = '';
+        if (pletInput) pletInput.value = '';
+        if (notesInput) notesInput.value = '';
+
+        // Reset photo & camera preview
+        state.uploadedImageBase64 = null;
+        const previewWrap = document.getElementById('capture-preview-wrap');
+        const openCameraBtn = document.getElementById('open-camera-btn');
+        if (previewWrap) previewWrap.style.display = 'none';
+        if (openCameraBtn) openCameraBtn.style.display = 'flex';
+
+        // Refresh today's table
+        loadCarRecords();
+      } else {
+        alert('⚠️ هەڵە لە پاشەکەوتکردن: ' + (data.error || 'هەڵەیەکی نەزانراو لە ڕاژەکار'));
       }
-
-      const payload = {
-        carNo,
-        bash,
-        plet,
-        pic: state.uploadedImageBase64 || null,
-        date_into,
-        Nnote,
-        uuser: (state.currentUser && state.currentUser.Username) ? state.currentUser.Username : 'کارمەند',
-        bar_: capturedGPS ? (capturedGPS.placeName || `GPS: ${capturedGPS.lat}, ${capturedGPS.lng}`) : null
-      };
-
-      const submitBtn = scannerCarForm.querySelector('button[type="submit"]');
-      const origBtnContent = submitBtn ? submitBtn.innerHTML : '';
+    } catch (err) {
+      alert('❌ هەڵەی پەیوەندی بە سێرڤەر: ' + err.message);
+    } finally {
       if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> <span>⏳ کەمێک چاوەڕوانبە... پاشەکەوتکردن</span>';
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = origBtnContent;
         if (window.lucide) lucide.createIcons();
       }
-
-      try {
-        const res = await authFetch('/api/car-records', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-
-        if (data.success) {
-          alert('✅ زانیاری و وێنەی ئۆتۆمبێل بە سەرکەوتوویی لە SQL Server پاشەکەوت کرا!');
-          state.lastCarRecord = payload;
-
-          // Clear inputs
-          if (carNoInput) carNoInput.value = '';
-          if (bashInput) bashInput.value = '';
-          if (pletInput) pletInput.value = '';
-          if (notesInput) notesInput.value = '';
-
-          // Reset photo & camera preview
-          state.uploadedImageBase64 = null;
-          const previewWrap = document.getElementById('capture-preview-wrap');
-          const openCameraBtn = document.getElementById('open-camera-btn');
-          if (previewWrap) previewWrap.style.display = 'none';
-          if (openCameraBtn) openCameraBtn.style.display = 'flex';
-
-          // Refresh today's table
-          loadCarRecords();
-        } else {
-          alert('⚠️ هەڵە لە پاشەکەوتکردن: ' + (data.error || 'هەڵەیەکی نەزانراو لە ڕاژەکار'));
-        }
-      } catch (err) {
-        alert('❌ هەڵەی پەیوەندی بە سێرڤەر: ' + err.message);
-      } finally {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = origBtnContent;
-          if (window.lucide) lucide.createIcons();
-        }
-      }
-    });
+    }
   }
 
-  // ─── CAR DETAILS FORM SUBMIT (#car-details-form — ئەنجام و وردەکاری ئۆتۆمبێل) ───
-  const carDetailsForm = document.getElementById('car-details-form');
-  if (carDetailsForm) {
-    carDetailsForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
+  const btnSaveScanner = document.getElementById('btn-save-scanner');
+  if (btnSaveScanner) {
+    btnSaveScanner.addEventListener('click', handleScannerSave);
+  }
+  const scannerCarForm = document.getElementById('car-form');
+  if (scannerCarForm) {
+    scannerCarForm.addEventListener('submit', handleScannerSave);
+  }
 
-      const payload = {
-        carNo: document.getElementById('cd-carNo').value.trim(),
-        bash: document.getElementById('cd-bash').value.trim(),
-        plet: document.getElementById('cd-plet').value.trim(),
-        pic: state.uploadedImageBase64 || null,
-        date_into: document.getElementById('cd-date_') ? document.getElementById('cd-date_').value : new Date().toISOString().slice(0, 10),
-        Nnote: document.getElementById('cd-notes') ? document.getElementById('cd-notes').value.trim() : null,
-        uuser: (state.currentUser && state.currentUser.Username) ? state.currentUser.Username : 'کارمەند',
-        bar_: capturedGPS ? (capturedGPS.placeName || `GPS: ${capturedGPS.lat}, ${capturedGPS.lng}`) : null,
-        N_pshknin: document.getElementById('cd-N_pshknin') ? document.getElementById('cd-N_pshknin').value.trim() : null,
-        driver_name: document.getElementById('cd-driverName') ? document.getElementById('cd-driverName').value.trim() : null,
-        mobile: document.getElementById('cd-mobile') ? document.getElementById('cd-mobile').value.trim() : null,
-        address: document.getElementById('cd-address') ? document.getElementById('cd-address').value.trim() : null,
-        chassis: document.getElementById('cd-chassis') ? document.getElementById('cd-chassis').value.trim() : null,
-        color: document.getElementById('cd-color') ? document.getElementById('cd-color').value.trim() : null,
-        gear: document.getElementById('cd-gearType') ? document.getElementById('cd-gearType').value.trim() : null,
-        fuel: document.getElementById('cd-fuelType') ? document.getElementById('cd-fuelType').value.trim() : null,
-        pistons: document.getElementById('cd-pistons') ? document.getElementById('cd-pistons').value.trim() : null,
-        inspector_name: document.getElementById('cd-inspector') ? document.getElementById('cd-inspector').value.trim() : null,
-        price: document.getElementById('cd-inspectionPrice') ? document.getElementById('cd-inspectionPrice').value.trim() : null,
-        result: document.getElementById('cd-inspectionResult') ? document.getElementById('cd-inspectionResult').value.trim() : null,
-        expire_date: document.getElementById('cd-expiryDate') ? document.getElementById('cd-expiryDate').value.trim() : null,
-        lab_name: document.getElementById('cd-labName') ? document.getElementById('cd-labName').value.trim() : null
-      };
+  // ─── CAR DETAILS FORM SUBMIT (#car-details-form & #btn-save-car-details) ───
+  async function handleCarDetailsSave(e) {
+    if (e) e.preventDefault();
 
-      const submitBtn = carDetailsForm.querySelector('button[type="submit"]');
-      const origBtnContent = submitBtn ? submitBtn.innerHTML : '';
+    const carNo = document.getElementById('cd-carNo') ? document.getElementById('cd-carNo').value.trim() : '';
+    const bash = document.getElementById('cd-bash') ? document.getElementById('cd-bash').value.trim() : '';
+    const plet = document.getElementById('cd-plet') ? document.getElementById('cd-plet').value.trim() : '';
+
+    if (!carNo) {
+      alert('⚠️ تکایە ژمارەی ئۆتۆمبێل بنووسە!');
+      if (document.getElementById('cd-carNo')) document.getElementById('cd-carNo').focus();
+      return;
+    }
+
+    const payload = {
+      carNo,
+      bash,
+      plet,
+      pic: state.uploadedImageBase64 || null,
+      date_into: document.getElementById('cd-date_') ? document.getElementById('cd-date_').value : new Date().toISOString().slice(0, 10),
+      Nnote: document.getElementById('cd-notes') ? document.getElementById('cd-notes').value.trim() : null,
+      uuser: (state.currentUser && state.currentUser.Username) ? state.currentUser.Username : 'کارمەند',
+      bar_: capturedGPS ? (capturedGPS.placeName || `GPS: ${capturedGPS.lat}, ${capturedGPS.lng}`) : null,
+      N_pshknin: document.getElementById('cd-N_pshknin') ? document.getElementById('cd-N_pshknin').value.trim() : null,
+      driver_name: document.getElementById('cd-driverName') ? document.getElementById('cd-driverName').value.trim() : null,
+      mobile: document.getElementById('cd-mobile') ? document.getElementById('cd-mobile').value.trim() : null,
+      address: document.getElementById('cd-address') ? document.getElementById('cd-address').value.trim() : null,
+      chassis: document.getElementById('cd-chassis') ? document.getElementById('cd-chassis').value.trim() : null,
+      color: document.getElementById('cd-color') ? document.getElementById('cd-color').value.trim() : null,
+      gear: document.getElementById('cd-gearType') ? document.getElementById('cd-gearType').value.trim() : null,
+      fuel: document.getElementById('cd-fuelType') ? document.getElementById('cd-fuelType').value.trim() : null,
+      pistons: document.getElementById('cd-pistons') ? document.getElementById('cd-pistons').value.trim() : null,
+      inspector_name: document.getElementById('cd-inspector') ? document.getElementById('cd-inspector').value.trim() : null,
+      price: document.getElementById('cd-inspectionPrice') ? document.getElementById('cd-inspectionPrice').value.trim() : null,
+      result: document.getElementById('cd-inspectionResult') ? document.getElementById('cd-inspectionResult').value.trim() : null,
+      expire_date: document.getElementById('cd-expiryDate') ? document.getElementById('cd-expiryDate').value.trim() : null,
+      lab_name: document.getElementById('cd-labName') ? document.getElementById('cd-labName').value.trim() : null
+    };
+
+    const submitBtn = document.getElementById('btn-save-car-details') || (document.getElementById('car-details-form') ? document.getElementById('car-details-form').querySelector('button[type="submit"]') : null);
+    const origBtnContent = submitBtn ? submitBtn.innerHTML : '';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> <span>⏳ کەمێک چاوەڕوانبە... پاشەکەوتکردن</span>';
+      if (window.lucide) lucide.createIcons();
+    }
+
+    try {
+      const res = await authFetch('/api/car-records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        alert('✅ زانیارییەکان بە سەرکەوتوویی پاشەکەوت کران!');
+        state.lastCarRecord = payload;
+        const cdf = document.getElementById('car-details-form');
+        if (cdf) cdf.reset();
+        state.uploadedImageBase64 = null;
+        
+        const previewWrap = document.getElementById('capture-preview-wrap');
+        const openCameraBtn = document.getElementById('open-camera-btn');
+        if (previewWrap) previewWrap.style.display = 'none';
+        if (openCameraBtn) openCameraBtn.style.display = 'flex';
+        
+        // Re-initialize default dates
+        const cdDateEl = document.getElementById('cd-date_');
+        if (cdDateEl) cdDateEl.value = new Date().toISOString().slice(0, 10);
+        
+        loadCarRecords();
+      } else {
+        alert('⚠️ هەڵە لە پاشەکەوتکردن: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('❌ هەڵەی ڕاژەکار یان هێڵ: ' + err.message);
+    } finally {
       if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> <span>⏳ کەمێک چاوەڕوانبە... پاشەکەوتکردن</span>';
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = origBtnContent;
         if (window.lucide) lucide.createIcons();
       }
+    }
+  }
 
-      try {
-        const res = await authFetch('/api/car-records', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-
-        if (data.success) {
-          alert('✅ زانیارییەکان بە سەرکەوتوویی پاشەکەوت کران!');
-          state.lastCarRecord = payload;
-          carDetailsForm.reset();
-          state.uploadedImageBase64 = null;
-          
-          const previewWrap = document.getElementById('capture-preview-wrap');
-          const openCameraBtn = document.getElementById('open-camera-btn');
-          if (previewWrap) previewWrap.style.display = 'none';
-          if (openCameraBtn) openCameraBtn.style.display = 'flex';
-          
-          // Re-initialize default dates
-          const cdDateEl = document.getElementById('cd-date_');
-          if (cdDateEl) cdDateEl.value = new Date().toISOString().slice(0, 10);
-          
-          loadCarRecords();
-        } else {
-          alert('⚠️ هەڵە لە پاشەکەوتکردن: ' + (data.error || 'Unknown error'));
-        }
-      } catch (err) {
-        alert('❌ هەڵەی ڕاژەکار یان هێڵ: ' + err.message);
-      } finally {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = origBtnContent;
-          if (window.lucide) lucide.createIcons();
-        }
-      }
-    });
+  const btnSaveCarDetails = document.getElementById('btn-save-car-details');
+  if (btnSaveCarDetails) {
+    btnSaveCarDetails.addEventListener('click', handleCarDetailsSave);
+  }
+  const carDetailsForm = document.getElementById('car-details-form');
+  if (carDetailsForm) {
+    carDetailsForm.addEventListener('submit', handleCarDetailsSave);
   }
 
   async function loadCarRecords() {

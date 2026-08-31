@@ -1446,8 +1446,12 @@ const server = http.createServer((req, res) => {
         res.end(`Server Error: ${err.code}`);
       }
     } else {
-      if (['.css', '.js', '.png', '.jpg', '.jpeg', '.svg', '.woff2'].includes(ext)) {
-        res.setHeader('Cache-Control', 'public, max-age=86400');
+      if (['.html', '.js', '.css', '.json'].includes(ext)) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      } else if (['.png', '.jpg', '.jpeg', '.svg', '.woff2'].includes(ext)) {
+        res.setHeader('Cache-Control', 'public, max-age=3600');
       }
       res.writeHead(200, { 'Content-Type': contentType });
       res.end(content);
