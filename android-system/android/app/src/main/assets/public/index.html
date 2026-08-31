@@ -1003,9 +1003,9 @@
     <!-- TAB: ABOUT ME (دەربارەی من — نەژاد قادر محمد) -->
     <section id="view-about-me" class="page-view">
       <div class="about-me-container">
-        <!-- Hero Profile Card -->
+        <!-- Hero Centered Profile Card -->
         <div class="about-me-hero-card">
-          <!-- Profile Avatar -->
+          <!-- Compact Profile Avatar -->
           <div class="about-avatar-box">
             <img src="profile-avatar.jpg" alt="نەژاد قادر محمد" class="about-avatar-img" onerror="this.onerror=null; this.src='app-icon.png';">
             <div class="about-avatar-status">
@@ -1013,120 +1013,89 @@
             </div>
           </div>
 
-          <!-- Main Info -->
+          <!-- Centered Main Info -->
           <div class="about-info-main">
             <div class="about-name-row">
               <h1 class="about-main-name">نەژاد قادر محمد</h1>
               <div class="about-badge-verified">
-                <i data-lucide="badge-check" style="width: 15px; height: 15px;"></i>
+                <i data-lucide="badge-check" style="width: 14px; height: 14px;"></i>
                 <span>پەرەپێدەر و ئەندازیاری سیستم</span>
               </div>
             </div>
 
             <div class="about-role-primary">
-              <i data-lucide="building-2" style="width: 20px; height: 20px; color: #fbbf24; flex-shrink: 0;"></i>
+              <i data-lucide="building-2" style="width: 18px; height: 18px; color: #fbbf24; flex-shrink: 0;"></i>
               <span>کارمەندی پێشکەوتووی هاتووچۆی سلێمانی</span>
             </div>
 
             <div class="about-role-secondary">
-              <i data-lucide="cpu" style="width: 18px; height: 18px; color: var(--accent-cyan); flex-shrink: 0;"></i>
-              <span>شارەزا لە بواری ئای تی و سیستم (IT &amp; Systems Specialist)</span>
+              <i data-lucide="cpu" style="width: 16px; height: 16px; color: var(--accent-cyan); flex-shrink: 0;"></i>
+              <span>شارەزا لە بواری ئای تی و سیستمە زیرەکەکان (IT &amp; Systems Specialist)</span>
             </div>
           </div>
 
-          <!-- Official Traffic IT Logo -->
-          <div class="about-logo-box">
-            <img src="traffic-it-logo.jpg" alt="لۆگۆی فەرمی هاتووچۆ و ئای تی" class="about-logo-img" onerror="this.onerror=null; this.src='app-icon.png';">
-            <div class="about-logo-caption">هاتووچۆی سلێمانی • IT</div>
-          </div>
-        </div>
-
-        <!-- Contact & Direct Communication Cards -->
-        <div class="about-contact-grid">
-          <!-- Phone Call Card -->
-          <div class="about-contact-card">
-            <div class="about-contact-icon phone">
-              <i data-lucide="phone-call"></i>
-            </div>
-            <div class="about-contact-details">
-              <div class="about-contact-label">ژمارەی مۆبایل (پەیوەندی ڕاستەوخۆ)</div>
-              <div class="about-contact-val">07726171818</div>
-              <div class="about-contact-actions">
-                <a href="tel:07726171818" class="btn-contact-action call">
-                  <i data-lucide="phone" style="width:14px;height:14px;"></i>
-                  <span>پەیوەندی بکە</span>
-                </a>
-                <button type="button" class="btn-contact-action copy" id="btn-copy-about-phone">
-                  <i data-lucide="copy" style="width:14px;height:14px;"></i>
-                  <span>کۆپیکردن</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- WhatsApp Card -->
-          <div class="about-contact-card">
-            <div class="about-contact-icon whatsapp">
-              <i data-lucide="message-circle"></i>
-            </div>
-            <div class="about-contact-details">
-              <div class="about-contact-label">واتس ئەپ (WhatsApp)</div>
-              <div class="about-contact-val">07726171818</div>
-              <div class="about-contact-actions">
-                <a href="https://wa.me/9647726171818" target="_blank" rel="noopener noreferrer" class="btn-contact-action whatsapp">
-                  <i data-lucide="send" style="width:14px;height:14px;"></i>
-                  <span>نامە بنێرە لە واتس ئەپ</span>
-                </a>
-              </div>
-            </div>
+          <!-- Centered Direct Contact Actions -->
+          <div class="about-contact-actions-row">
+            <a href="tel:07726171818" class="btn-contact-action call">
+              <i data-lucide="phone" style="width:14px;height:14px;"></i>
+              <span>مۆبایل: 07726171818</span>
+            </a>
+            <a href="https://wa.me/9647726171818" target="_blank" rel="noopener noreferrer" class="btn-contact-action whatsapp">
+              <i data-lucide="message-circle" style="width:14px;height:14px;"></i>
+              <span>واتس ئەپ (WhatsApp)</span>
+            </a>
+            <button type="button" class="btn-contact-action copy" id="btn-copy-about-phone">
+              <i data-lucide="copy" style="width:14px;height:14px;"></i>
+              <span>کۆپیکردنی ژمارە</span>
+            </button>
           </div>
         </div>
 
-        <!-- Specialization, Engineering & Skills -->
+        <!-- Specialization, Engineering & Skills (Compact Grid) -->
         <div class="about-skills-section">
           <div class="about-section-header">
-            <i data-lucide="layers" style="color: var(--primary);"></i>
+            <i data-lucide="layers" style="color: var(--primary); width:17px; height:17px;"></i>
             <span>تایبەتمەندی و بوارەکانی شارەزایی</span>
           </div>
 
           <div class="about-skills-grid">
             <div class="about-skill-item">
               <div class="about-skill-icon">
-                <i data-lucide="server" style="color: var(--accent-cyan); width: 20px; height: 20px;"></i>
+                <i data-lucide="server" style="color: var(--accent-cyan); width: 17px; height: 17px;"></i>
               </div>
               <div>
                 <div class="about-skill-title">ئەندازیاری داتابەیس و سێرڤەر</div>
-                <div class="about-skill-desc">دیزاین و بەڕێوەبردنی سێرڤەری SQL Server بە شێوازی پرۆفیشناڵ و بەستنەوەی تۆڕی لۆکاڵ و دەرەکی.</div>
+                <div class="about-skill-desc">بەڕێوەبردن و ئەندازیاری سێرڤەری SQL Server و بەستنەوەی تۆڕی سێرڤەرەکان بە شێوازی سەلامەت.</div>
               </div>
             </div>
 
             <div class="about-skill-item">
               <div class="about-skill-icon">
-                <i data-lucide="car" style="color: #fbbf24; width: 20px; height: 20px;"></i>
+                <i data-lucide="car" style="color: #fbbf24; width: 17px; height: 17px;"></i>
               </div>
               <div>
                 <div class="about-skill-title">سیستەمی تاقیگە و پشکنینی ئۆتۆمبێل</div>
-                <div class="about-skill-desc">دروستکردنی خێراترین سیستەمی تۆمارکردنی زانیاری، کامێرا و پشکنینی ئۆتۆمبێل بە کوالیتی بەرز.</div>
+                <div class="about-skill-desc">تۆمارکردنی خێرای زانیاری و گرتنی وێنەی کامێرا و پشکنینەکانی پشکنەران.</div>
               </div>
             </div>
 
             <div class="about-skill-item">
               <div class="about-skill-icon">
-                <i data-lucide="tablet-smartphone" style="color: #34d399; width: 20px; height: 20px;"></i>
+                <i data-lucide="tablet-smartphone" style="color: #34d399; width: 17px; height: 17px;"></i>
               </div>
               <div>
                 <div class="about-skill-title">ئەپڵیکەیشنی تابڵێت و مۆبایل</div>
-                <div class="about-skill-desc">پەرەپێدانی بەرنامەی دەستی (Android & Tablets) بۆ ئاسانکاری و خێرایی کارەکانی کارمەندان لە مەیداندا.</div>
+                <div class="about-skill-desc">پەرەپێدانی بەرنامەی کارمەندان (Android & Tablets) بۆ ئاسانکاری و خێرایی کارە مەیدانییەکان.</div>
               </div>
             </div>
 
             <div class="about-skill-item">
               <div class="about-skill-icon">
-                <i data-lucide="shield-check" style="color: #818cf8; width: 20px; height: 20px;"></i>
+                <i data-lucide="shield-check" style="color: #818cf8; width: 17px; height: 17px;"></i>
               </div>
               <div>
                 <div class="about-skill-title">ئاسایشی داتا و نوێکردنەوەی خۆکار</div>
-                <div class="about-skill-desc">پاراستنی داتاکان بە سیستەمی Authentication و ئەپدەیتی یەک کلیکی خۆکار لەسەر هەموو ئامێرەکان.</div>
+                <div class="about-skill-desc">پاراستنی داتاکان بە سیستەمی Authentication و نوێکردنەوەی ئۆتۆماتیکی لە ڕێگەی ئینتەرنێتەوە.</div>
               </div>
             </div>
           </div>
