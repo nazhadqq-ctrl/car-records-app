@@ -666,41 +666,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- 5. USER MANAGEMENT (dbo.image_user) ---
   const addUserForm = document.getElementById('add-user-form');
-  addUserForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const User_ = document.getElementById('new-user-name').value.trim();
-    const password = document.getElementById('new-user-pass').value;
-    const permetion = document.getElementById('new-user-role').value;
-    const on_off = document.getElementById('new-user-status').value;
+  if (addUserForm) {
+    addUserForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const User_ = document.getElementById('new-user-name').value.trim();
+      const password = document.getElementById('new-user-pass').value.trim();
+      const permetion = document.getElementById('new-user-role').value;
+      const on_off = document.getElementById('new-user-status').value;
 
-    try {
-      const res = await authFetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ User_, password, permetion, on_off })
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert(`Account '${User_}' added successfully to dbo.image_user!`);
-        addUserForm.reset();
-        loadUsersList();
-      } else {
-        alert('Error adding user: ' + data.error);
+      if (!User_ || !password) return;
+
+      try {
+        const res = await authFetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ User_, password, permetion, on_off })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert(`بەکارهێنەری '${User_}' بە سەرکەوتوویی زیادکرا بۆ dbo.image_user!`);
+          addUserForm.reset();
+          loadUsersList();
+        } else {
+          alert('هەڵە لە زیادکردنی بەکارهێنەر: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('هەڵە لە پەیوەندی: ' + err.message);
       }
-    } catch (err) {
-      alert('Request error: ' + err.message);
-    }
-  });
+    });
+  }
 
   async function loadUsersList() {
     const tbody = document.getElementById('users-table-tbody');
     if (!tbody) return;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:1rem;">🔄 چاوەڕوانبە... هێنانی بەکارهێنەران لە dbo.image_user</td></tr>`;
+    
     try {
       const res = await authFetch('/api/users');
-      const users = await res.json();
+      const data = await res.json();
 
-      if (!users || users.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:1rem;">No users found in dbo.image_user</td></tr>`;
+      if (!res.ok || data.error) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--accent-rose); padding:1.2rem;">⚠️ ${escapeHtml(data.error || 'پێویستە وەک ئەدمین چوونەژوورەوەت کردبێت')}</td></tr>`;
+        return;
+      }
+
+      const users = Array.isArray(data) ? data : [];
+
+      if (users.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:1.2rem;">هیچ بەکارهێنەرێک لە dbo.image_user نەدۆزرایەوە</td></tr>`;
         return;
       }
 
@@ -709,33 +722,51 @@ document.addEventListener('DOMContentLoaded', () => {
         const role = u.permetion || u.Role || 'User';
         const status = (u.on_off || 'on').toLowerCase();
         const isOn = status === 'on' || status === '1' || status === 'true';
+        const passText = u.password ? String(u.password) : '-';
 
         return `
           <tr>
             <td><span class="tag-badge">#${u.id || u.UserId || '-'}</span></td>
-            <td><strong>${escapeHtml(username)}</strong></td>
-            <td><span style="color: ${role === 'Admin' ? 'var(--accent-amber)' : 'var(--text-main)'}; font-weight: 600;">${escapeHtml(role)}</span></td>
+            <td><strong style="color:var(--accent-cyan); font-size:0.95rem;">${escapeHtml(username)}</strong></td>
+            <td><span style="color: ${role.toLowerCase() === 'admin' ? 'var(--accent-amber)' : 'var(--text-main)'}; font-weight: 700; background:rgba(255,255,255,0.06); padding:0.2rem 0.5rem; border-radius:4px;">${escapeHtml(role)}</span></td>
             <td>
               <button type="button" class="btn-toggle-status" data-id="${u.id}" data-current="${status}" style="
                 background: ${isOn ? 'rgba(52, 211, 153, 0.15)' : 'rgba(239, 68, 68, 0.15)'};
                 color: ${isOn ? 'var(--accent-emerald)' : 'var(--accent-rose)'};
                 border: 1px solid ${isOn ? 'rgba(52, 211, 153, 0.3)' : 'rgba(239, 68, 68, 0.3)'};
-                padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer;
+                padding: 0.25rem 0.65rem; border-radius: 6px; font-size: 0.78rem; font-weight: 700; cursor: pointer;
               ">
-                ${isOn ? '● ON (مفعل)' : '○ OFF (معطل)'}
+                ${isOn ? '● ON (چالاک)' : '○ OFF (ناچالاک)'}
               </button>
             </td>
-            <td><code style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(u.password ? '••••••' : '-')}</code></td>
+            <td>
+              <span class="user-pass-display" data-pass="${escapeHtml(passText)}" style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; font-weight:600; color: #fff; background:rgba(0,0,0,0.3); padding:0.2rem 0.6rem; border-radius:4px; border:1px solid rgba(255,255,255,0.1); cursor:pointer;" title="کلیک بکە بۆ کۆپیکردنی وشەی نهێنی">
+                ${escapeHtml(passText)}
+              </span>
+            </td>
             <td>
               <button type="button" class="btn-delete-user" data-id="${u.id}" data-user="${escapeHtml(username)}" style="
-                background: none; border: none; color: var(--accent-rose); cursor: pointer; padding: 0.2rem 0.5rem; font-size: 0.85rem; font-weight: 700;
-              " title="Delete user">✕ Delete</button>
+                background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--accent-rose); cursor: pointer; padding: 0.25rem 0.65rem; font-size: 0.8rem; font-weight: 700; border-radius:6px;
+              " title="Delete user">🗑️ سڕینەوە</button>
             </td>
           </tr>
         `;
       }).join('');
 
-      // Add click handlers for toggle and delete
+      // Add click handlers for toggle, delete, and copy password
+      tbody.querySelectorAll('.user-pass-display').forEach(el => {
+        el.addEventListener('click', () => {
+          const pass = el.getAttribute('data-pass');
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(pass).then(() => {
+              const prev = el.innerText;
+              el.innerText = 'کۆپیکرا!';
+              setTimeout(() => el.innerText = prev, 1500);
+            });
+          }
+        });
+      });
+
       tbody.querySelectorAll('.btn-toggle-status').forEach(btn => {
         btn.addEventListener('click', async () => {
           const id = parseInt(btn.getAttribute('data-id'));
@@ -749,8 +780,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const d = await r.json();
             if (d.success) loadUsersList();
+            else alert('هەڵە لە گۆڕینی دۆخ: ' + (d.error || 'Unknown error'));
           } catch (e) {
-            alert('Toggle failed: ' + e.message);
+            alert('هەڵە لە پەیوەندی: ' + e.message);
           }
         });
       });
@@ -759,7 +791,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', async () => {
           const id = parseInt(btn.getAttribute('data-id'));
           const user = btn.getAttribute('data-user');
-          if (!confirm(`Are you sure you want to delete user '${user}' from dbo.image_user?`)) return;
+          if (!confirm(`ئایا دڵنیایت لە سڕینەوەی بەکارهێنەری '${user}' لە dbo.image_user؟`)) return;
           try {
             const r = await authFetch('/api/users/delete', {
               method: 'POST',
@@ -768,14 +800,15 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const d = await r.json();
             if (d.success) loadUsersList();
+            else alert('هەڵە لە سڕینەوە: ' + (d.error || 'Unknown error'));
           } catch (e) {
-            alert('Delete failed: ' + e.message);
+            alert('هەڵە لە پەیوەندی: ' + e.message);
           }
         });
       });
 
     } catch (e) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--accent-rose);">Error fetching users from dbo.image_user</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--accent-rose); padding:1rem;">❌ هەڵە لە هێنانی بەکارهێنەران: ${escapeHtml(e.message)}</td></tr>`;
     }
   }
 

@@ -87,20 +87,21 @@ function clearFailedLogin(clientIp) {
 
 // Default Config Structure (Stored in local config.json on the server/client)
 let dbConfig = {
-  server: '62.201.232.190',
-  database: 'Taqega',
-  user: 'sa',
-  password: '',
+  server: '185.181.111.17',
+  database: 'image_coart',
+  user: 'ASA',
+  password: 'Nazhad9999',
   port: 1433,
   windowsAuth: false,
   setupCompleted: true,
   savedServers: [
     {
-      id: 'srv-primary',
-      name: 'Primary SQL Server',
-      server: '62.201.232.190',
-      database: 'Taqega',
-      user: 'sa',
+      id: 'srv-185-181-111-17',
+      name: '185.181.111.17 (image_coart)',
+      server: '185.181.111.17',
+      database: 'image_coart',
+      user: 'ASA',
+      password: 'Nazhad9999',
       port: 1433,
       windowsAuth: false
     }
@@ -907,16 +908,16 @@ const server = http.createServer((req, res) => {
     if (!requireAdmin(req, res)) return;
 
     if (isSqlServerConnected && sql) {
-      sql.query`SELECT id, User_, permetion, on_off FROM dbo.image_user ORDER BY id DESC`.then(result => {
+      sql.query`SELECT id, User_, permetion, on_off, password FROM dbo.image_user ORDER BY id DESC`.then(result => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result.recordset));
       }).catch(err => {
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'An internal error occurred' }));
+        res.end(JSON.stringify({ error: 'An internal error occurred: ' + err.message }));
       });
     } else {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify(inMemoryImageUsers.map(({ password, ...u }) => u)));
+      return res.end(JSON.stringify(inMemoryImageUsers));
     }
     return;
   }
@@ -939,13 +940,13 @@ const server = http.createServer((req, res) => {
 
       const role = String(permetion || 'User').trim();
       const status = String(on_off || 'on').trim();
+      const rawPassword = String(password).trim();
 
       try {
-        const hashedPassword = bcrypt.hashSync(String(password), 10);
         if (isSqlServerConnected && sql) {
           const request = new sql.Request();
           request.input('User_', sql.NVarChar(50), String(User_).trim());
-          request.input('password', sql.NVarChar(255), hashedPassword);
+          request.input('password', sql.NVarChar(255), rawPassword);
           request.input('permetion', sql.NVarChar(50), role);
           request.input('on_off', sql.NVarChar(50), status);
           await request.query(`
@@ -956,7 +957,7 @@ const server = http.createServer((req, res) => {
           inMemoryImageUsers.push({
             id: inMemoryImageUsers.length + 1,
             User_: String(User_).trim(),
-            password: hashedPassword,
+            password: rawPassword,
             permetion: role,
             on_off: status
           });
@@ -966,7 +967,7 @@ const server = http.createServer((req, res) => {
         return res.end(JSON.stringify({ success: true, User_ }));
       } catch (insertErr) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: 'A database error occurred' }));
+        return res.end(JSON.stringify({ error: 'A database error occurred: ' + insertErr.message }));
       }
     });
     return;
