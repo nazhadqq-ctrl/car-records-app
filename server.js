@@ -185,21 +185,21 @@ async function initSqlServer(config) {
   try {
     try { await sql.close(); } catch (e) {}
 
-    const rawServer = process.env.DB_SERVER || config.server;
-    const finalServer = (rawServer && !rawServer.includes('*') && !rawServer.includes('$')) ? rawServer : 'localhost';
+    const rawServer = config.server || process.env.DB_SERVER;
+    const finalServer = (rawServer && !rawServer.includes('*') && !rawServer.includes('$')) ? rawServer : '185.181.111.17';
 
-    const rawDb = process.env.DB_DATABASE || config.database;
-    const finalDb = (rawDb && !rawDb.includes('*') && !rawDb.includes('$')) ? rawDb : 'master';
+    const rawDb = config.database || process.env.DB_DATABASE;
+    const finalDb = (rawDb && !rawDb.includes('*') && !rawDb.includes('$')) ? rawDb : 'image_coart';
 
-    const rawUser = process.env.DB_USER || config.user;
-    const finalUser = (rawUser && !rawUser.includes('*') && !rawUser.includes('$')) ? rawUser : 'sa';
+    const rawUser = config.user || process.env.DB_USER;
+    const finalUser = (rawUser && !rawUser.includes('*') && !rawUser.includes('$')) ? rawUser : 'ASA';
 
-    const rawPass = process.env.DB_PASSWORD || config.password;
-    const finalPassword = (rawPass && !rawPass.includes('*') && !rawPass.includes('$')) ? rawPass : '';
+    const rawPass = config.password || process.env.DB_PASSWORD;
+    const finalPassword = (rawPass && !rawPass.includes('*') && !rawPass.includes('$')) ? rawPass : 'Nazhad9999';
 
     const connConfig = {
       server: finalServer,
-      port: parseInt(process.env.DB_PORT || config.port) || 1433,
+      port: parseInt(config.port || process.env.DB_PORT) || 1433,
       database: finalDb,
       user: finalUser,
       password: finalPassword,
