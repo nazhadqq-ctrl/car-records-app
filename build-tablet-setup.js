@@ -27,8 +27,6 @@ if (fs.existsSync(systemNodeExe)) {
   fs.copyFileSync(process.execPath, path.join(distDir, 'bin', 'node.exe'));
 }
 
-// 3. Copy required files
-console.log('📦 Copying application source files...');
 fs.copyFileSync(path.join(rootDir, 'server.js'), path.join(distDir, 'server.js'));
 fs.copyFileSync(path.join(rootDir, 'auto-updater.js'), path.join(distDir, 'auto-updater.js'));
 fs.copyFileSync(path.join(rootDir, 'version.json'), path.join(distDir, 'version.json'));
@@ -36,6 +34,13 @@ fs.copyFileSync(path.join(rootDir, 'github-sync.js'), path.join(distDir, 'github
 fs.copyFileSync(path.join(rootDir, 'config.json'), path.join(distDir, 'config.json'));
 fs.copyFileSync(path.join(rootDir, '.env'), path.join(distDir, '.env'));
 fs.copyFileSync(path.join(rootDir, 'package.json'), path.join(distDir, 'package.json'));
+
+['Start-App.exe', 'CarManagement.exe', 'CreateAppShortcuts.exe', 'MakeShortcut.exe', 'Start-App.bat', 'Start-Desktop-App.bat', 'Start-App-Silent.vbs', 'Start-Desktop-App-Silent.vbs'].forEach(f => {
+  const p = path.join(rootDir, f);
+  if (fs.existsSync(p)) {
+    fs.copyFileSync(p, path.join(distDir, f));
+  }
+});
 
 fs.mkdirSync(path.join(distDir, 'public'), { recursive: true });
 fs.mkdirSync(path.join(distDir, 'node_modules'), { recursive: true });
