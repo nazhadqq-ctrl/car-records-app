@@ -71,7 +71,11 @@ namespace CarSetup
                 }
 
                 // Target paths
-                string targetVbs = Path.Combine(destDir, "Start-App-Silent.vbs");
+                string targetVbs = Path.Combine(destDir, "Start-Desktop-App-Silent.vbs");
+                if (!File.Exists(targetVbs))
+                {
+                    targetVbs = Path.Combine(destDir, "Start-App-Silent.vbs");
+                }
                 string iconPath = Path.Combine(destDir, "app.ico");
 
                 // Determine Desktop directory (support OneDrive Desktop if present)

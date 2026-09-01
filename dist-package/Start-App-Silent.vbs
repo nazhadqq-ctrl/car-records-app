@@ -3,13 +3,13 @@ Set fso = CreateObject("Scripting.FileSystemObject")
 currentDir = fso.GetParentFolderName(WScript.ScriptFullName)
 WshShell.CurrentDirectory = currentDir
 
-' Function to test if server on port 3002 is responding
+' 1. Check if server on port 3002 is already responding
 Function IsServerActive()
     On Error Resume Next
     Dim http
     Set http = CreateObject("MSXML2.ServerXMLHTTP.6.0")
-    http.setTimeouts 200, 200, 200, 200
-    http.open "GET", "http://localhost:3002/api/setup-status", False
+    http.setTimeouts 400, 400, 400, 400
+    http.open "GET", "http://127.0.0.1:3002/api/setup-status", False
     http.send
     If Err.Number = 0 And (http.Status = 200 Or http.Status = 304) Then
         IsServerActive = True
@@ -20,22 +20,38 @@ Function IsServerActive()
     On Error GoTo 0
 End Function
 
-' Start node server silently in background with ZERO CMD window
-If Not IsServerActive() Then
+' 2. Locate node.exe binary
+Function GetNodeExe()
+    Dim localApp, prog86
+    localApp = WshShell.ExpandEnvironmentStrings("%LOCALAPPDATA%")
+    prog86 = WshShell.ExpandEnvironmentStrings("%ProgramFiles(x86)%")
+
     If fso.FileExists(currentDir & "\bin\node.exe") Then
-        WshShell.Run """" & currentDir & "\bin\node.exe"" server.js", 0, False
+        GetNodeExe = """" & currentDir & "\bin\node.exe"""
     ElseIf fso.FileExists(currentDir & "\node.exe") Then
-        WshShell.Run """" & currentDir & "\node.exe"" server.js", 0, False
+        GetNodeExe = """" & currentDir & "\node.exe"""
+    ElseIf fso.FileExists("C:\Program Files\nodejs\node.exe") Then
+        GetNodeExe = """C:\Program Files\nodejs\node.exe"""
+    ElseIf fso.FileExists(prog86 & "\nodejs\node.exe") Then
+        GetNodeExe = """" & prog86 & "\nodejs\node.exe"""
+    ElseIf fso.FileExists(localApp & "\Programs\node\node.exe") Then
+        GetNodeExe = """" & localApp & "\Programs\node\node.exe"""
     Else
-        WshShell.Run "node server.js", 0, False
+        GetNodeExe = "node"
     End If
-    For i = 1 To 25
-        WScript.Sleep 200
+End Function
+
+' 3. Start node server silently if not already running
+If Not IsServerActive() Then
+    nodeExe = GetNodeExe()
+    WshShell.Run nodeExe & " """ & currentDir & "\server.js""", 0, False
+    For i = 1 To 30
+        WScript.Sleep 250
         If IsServerActive() Then Exit For
     Next
 End If
 
-' Launch App Window without any CMD window
+' 4. Launch dedicated maximized window in Edge / Chrome / Browser
 Dim edgePath1, edgePath2, chromePath1, chromePath2
 edgePath1 = WshShell.ExpandEnvironmentStrings("%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe")
 edgePath2 = WshShell.ExpandEnvironmentStrings("%ProgramFiles%\Microsoft\Edge\Application\msedge.exe")

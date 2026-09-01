@@ -16,6 +16,28 @@ const PORT = process.env.PORT || 3002;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const CONFIG_PATH = path.join(__dirname, 'config.json');
 
+// MIME types dictionary for static file serving
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.eot': 'application/vnd.ms-fontobject',
+  '.otf': 'font/otf',
+  '.txt': 'text/plain; charset=utf-8',
+  '.map': 'application/json',
+  '.webmanifest': 'application/manifest+json'
+};
+
 // Max body size: 15MB
 const MAX_BODY_SIZE = 15 * 1024 * 1024;
 
@@ -362,16 +384,6 @@ if (dbConfig.setupCompleted && dbConfig.server) {
   initSqlServer(dbConfig);
 }
 
-const MIME_TYPES = {
-  '.html': 'text/html; charset=UTF-8',
-  '.css': 'text/css',
-  '.js': 'text/javascript',
-  '.json': 'application/json',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.svg': 'image/svg+xml'
-};
-
 function sanitizeBody(req, callback) {
   let body = '';
   let size = 0;
@@ -505,6 +517,14 @@ const server = http.createServer((req, res) => {
         updater.checkForUpdates(isForce).then(result => {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(result));
+          
+          if (result.success && result.hasUpdate) {
+            // Exit the process so that it restarts with the new code
+            console.log("Update successful. Exiting process to apply updates...");
+            setTimeout(() => {
+              process.exit(0);
+            }, 3000); // 3 second delay to ensure the response reaches the client
+          }
         }).catch(err => {
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: false, error: err.message }));
@@ -1443,7 +1463,9 @@ const server = http.createServer((req, res) => {
   } catch (e) {}
 
   // Path traversal check
-  if (!filePath.startsWith(PUBLIC_DIR + path.sep)) {
+  const resolvedPublicDir = path.resolve(PUBLIC_DIR).toLowerCase();
+  const resolvedFilePath = path.resolve(filePath).toLowerCase();
+  if (!resolvedFilePath.startsWith(resolvedPublicDir)) {
     res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
     return res.end('403 Forbidden: Invalid file path.');
   }
