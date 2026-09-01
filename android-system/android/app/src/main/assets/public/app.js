@@ -2872,10 +2872,24 @@ document.addEventListener('DOMContentLoaded', () => {
         if (descEl) descEl.textContent = 'سیستەمەکە گەیشتە نوێترین وەشان.';
         loadSystemVersion();
 
-        // Auto reload after 3 seconds
-        setTimeout(() => {
-          window.location.reload();
-        }, 3000);
+        // Smart Auto-reload with health polling to ensure server is ready
+        let reloadAttempts = 0;
+        const checkAndReload = async () => {
+          try {
+            const testRes = await fetch('/api/setup-status?t=' + Date.now());
+            if (testRes.ok) {
+              window.location.reload();
+              return;
+            }
+          } catch(e) {}
+          reloadAttempts++;
+          if (reloadAttempts < 25) {
+            setTimeout(checkAndReload, 800);
+          } else {
+            window.location.reload();
+          }
+        };
+        setTimeout(checkAndReload, 2500);
 
       } else if (data.success && !data.hasUpdate) {
         // Already latest version

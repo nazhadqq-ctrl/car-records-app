@@ -14,6 +14,7 @@ const BASE_RAW_URL = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAM
 
 const FILES_TO_UPDATE = [
   'version.json',
+  'config.json',
   'auto-updater.js',
   'github-sync.js',
   'public/styles.css',

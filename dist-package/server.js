@@ -519,11 +519,23 @@ const server = http.createServer((req, res) => {
           res.end(JSON.stringify(result));
           
           if (result.success && result.hasUpdate) {
-            // Exit the process so that it restarts with the new code
-            console.log("Update successful. Exiting process to apply updates...");
+            console.log("Update successful. Relaunching server process...");
             setTimeout(() => {
+              try {
+                const { spawn } = require('child_process');
+                const nodeExe = process.execPath;
+                const scriptPath = path.join(__dirname, 'server.js');
+                const child = spawn(nodeExe, [scriptPath], {
+                  detached: true,
+                  stdio: 'ignore',
+                  cwd: __dirname
+                });
+                child.unref();
+              } catch (spawnErr) {
+                console.error("Auto-restart spawn error:", spawnErr);
+              }
               process.exit(0);
-            }, 3000); // 3 second delay to ensure the response reaches the client
+            }, 2000);
           }
         }).catch(err => {
           res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -729,9 +741,9 @@ const server = http.createServer((req, res) => {
       }
 
       try {
-        dbConfig.server = String(data.server || 'localhost').trim();
-        dbConfig.database = String(data.database || 'ApexCarDb').trim();
-        dbConfig.user = String(data.user || 'sa').trim();
+        dbConfig.server = String(data.server || '185.181.111.17').trim();
+        dbConfig.database = String(data.database || 'image_coart').trim();
+        dbConfig.user = String(data.user || 'ASA').trim();
         if (data.password !== undefined && data.password !== '') {
           dbConfig.password = String(data.password);
         }
