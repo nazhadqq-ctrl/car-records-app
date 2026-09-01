@@ -12,6 +12,19 @@ const url = require('url');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 
+// Prevent crash if stdout/stderr is detached or closed in GUI/background mode
+if (process.stdout && process.stdout.on) {
+  process.stdout.on('error', (err) => { if (err.code === 'EPIPE') return; });
+}
+if (process.stderr && process.stderr.on) {
+  process.stderr.on('error', (err) => { if (err.code === 'EPIPE') return; });
+}
+process.on('uncaughtException', (err) => {
+  try {
+    fs.appendFileSync(path.join(__dirname, 'server-error.log'), `[${new Date().toISOString()}] Uncaught: ${err.stack || err}\n`);
+  } catch (_) {}
+});
+
 const PORT = process.env.PORT || 3002;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const CONFIG_PATH = path.join(__dirname, 'config.json');

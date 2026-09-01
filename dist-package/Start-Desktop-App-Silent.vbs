@@ -3,18 +3,12 @@ Set fso = CreateObject("Scripting.FileSystemObject")
 currentDir = fso.GetParentFolderName(WScript.ScriptFullName)
 WshShell.CurrentDirectory = currentDir
 
-' Check if native CarManagement.exe exists
-If fso.FileExists(currentDir & "\CarManagement.exe") Then
-    WshShell.Run """" & currentDir & "\CarManagement.exe""", 0, False
-    WScript.Quit
-End If
-
 ' 1. Check if server on port 3002 is already responding
 Function IsServerActive()
     On Error Resume Next
     Dim http
     Set http = CreateObject("MSXML2.ServerXMLHTTP.6.0")
-    http.setTimeouts 500, 500, 500, 500
+    http.setTimeouts 400, 400, 400, 400
     http.open "GET", "http://127.0.0.1:3002/api/setup-status", False
     http.send
     If Err.Number = 0 And (http.Status = 200 Or http.Status = 304) Then
@@ -33,15 +27,15 @@ Function GetNodeExe()
     prog86 = WshShell.ExpandEnvironmentStrings("%ProgramFiles(x86)%")
 
     If fso.FileExists(currentDir & "\bin\node.exe") Then
-        GetNodeExe = currentDir & "\bin\node.exe"
+        GetNodeExe = """" & currentDir & "\bin\node.exe"""
     ElseIf fso.FileExists(currentDir & "\node.exe") Then
-        GetNodeExe = currentDir & "\node.exe"
+        GetNodeExe = """" & currentDir & "\node.exe"""
     ElseIf fso.FileExists("C:\Program Files\nodejs\node.exe") Then
-        GetNodeExe = "C:\Program Files\nodejs\node.exe"
+        GetNodeExe = """C:\Program Files\nodejs\node.exe"""
     ElseIf fso.FileExists(prog86 & "\nodejs\node.exe") Then
-        GetNodeExe = prog86 & "\nodejs\node.exe"
+        GetNodeExe = """" & prog86 & "\nodejs\node.exe"""
     ElseIf fso.FileExists(localApp & "\Programs\node\node.exe") Then
-        GetNodeExe = localApp & "\Programs\node\node.exe"
+        GetNodeExe = """" & localApp & "\Programs\node\node.exe"""
     Else
         GetNodeExe = "node"
     End If
@@ -49,12 +43,8 @@ End Function
 
 ' 3. Start node server silently if not already running
 If Not IsServerActive() Then
-    ' Kill any hung zombie process holding port 3002
-    WshShell.Run "cmd.exe /c for /f ""tokens=5"" %a in ('netstat -aon ^| findstr :3002') do taskkill /F /PID %a >nul 2>&1", 0, True
-    WScript.Sleep 300
-
     nodeExe = GetNodeExe()
-    WshShell.Run """" & nodeExe & """ """ & currentDir & "\server.js""", 0, False
+    WshShell.Run nodeExe & " """ & currentDir & "\server.js""", 0, False
     For i = 1 To 30
         WScript.Sleep 250
         If IsServerActive() Then Exit For
