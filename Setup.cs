@@ -71,6 +71,7 @@ namespace CarSetup
                 }
 
                 // Target paths
+                string targetExe = Path.Combine(destDir, "CarManagement.exe");
                 string targetVbs = Path.Combine(destDir, "Start-Desktop-App-Silent.vbs");
                 if (!File.Exists(targetVbs))
                 {
@@ -86,14 +87,24 @@ namespace CarSetup
 
                 string shortcutDesc = AppTitleKurdish + " — دیزاین و پرۆگرامسازی: NAZHAD Q. MAHAMMED";
 
+                string launchTarget = File.Exists(targetExe) ? targetExe : "wscript.exe";
+                string launchArgs = File.Exists(targetExe) ? "" : "\"" + targetVbs + "\"";
+
                 // Create Desktop Shortcut with IShellLinkW (Full Unicode Support)
-                CreateShortcut(Path.Combine(desktopDir, ShortcutFileName), "wscript.exe", "\"" + targetVbs + "\"", destDir, iconPath, shortcutDesc);
+                CreateShortcut(Path.Combine(desktopDir, ShortcutFileName), launchTarget, launchArgs, destDir, iconPath, shortcutDesc);
 
                 // Create Start Menu Shortcut
-                CreateShortcut(Path.Combine(programsDir, ShortcutFileName), "wscript.exe", "\"" + targetVbs + "\"", destDir, iconPath, shortcutDesc);
+                CreateShortcut(Path.Combine(programsDir, ShortcutFileName), launchTarget, launchArgs, destDir, iconPath, shortcutDesc);
 
                 // Launch App
-                Process.Start("wscript.exe", "\"" + targetVbs + "\"");
+                if (File.Exists(targetExe))
+                {
+                    Process.Start(targetExe);
+                }
+                else
+                {
+                    Process.Start("wscript.exe", "\"" + targetVbs + "\"");
+                }
 
                 MessageBox.Show(
                     "\u2705 \u0628\u06D5 \u0633\u06D5\u0631\u06A9\u06D5\u0648\u062A\u0648\u0648\u06CC \u0644\u06D5\u0633\u06D5\u0631 \u0626\u06D5\u0645 \u0626\u0627\u0645\u064E\u06CC\u0631\u06D5 \u062F\u0627\u0645\u06D5\u0632\u0631\u0627!\n\n" +

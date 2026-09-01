@@ -40,6 +40,7 @@ class Program
         try
         {
             string baseDir = AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\');
+            string exePath = Path.Combine(baseDir, "CarManagement.exe");
             string vbsPath = Path.Combine(baseDir, "Start-Desktop-App-Silent.vbs");
             string iconPath = Path.Combine(baseDir, "app.ico");
 
@@ -50,11 +51,22 @@ class Program
             string shortcutPath = Path.Combine(desktopDir, "تۆماری تاقیگەکان.lnk");
 
             IShellLinkW link = (IShellLinkW)new ShellLink();
-            link.SetPath("wscript.exe");
-            link.SetArguments("\"" + vbsPath + "\"");
+            if (File.Exists(exePath))
+            {
+                link.SetPath(exePath);
+                link.SetArguments("");
+            }
+            else
+            {
+                link.SetPath("wscript.exe");
+                link.SetArguments("\"" + vbsPath + "\"");
+            }
             link.SetWorkingDirectory(baseDir);
-            link.SetIconLocation(iconPath, 0);
-            link.SetDescription("تۆماری تاقیگەکان");
+            if (File.Exists(iconPath))
+            {
+                link.SetIconLocation(iconPath, 0);
+            }
+            link.SetDescription("تۆماری تاقیگەکان — دیزاین و پرۆگرامسازی: NAZHAD Q. MAHAMMED");
 
             IPersistFile file = (IPersistFile)link;
             file.Save(shortcutPath, false);
