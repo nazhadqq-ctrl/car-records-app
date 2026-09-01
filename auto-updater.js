@@ -17,6 +17,7 @@ const FILES_TO_UPDATE = [
   'config.json',
   'auto-updater.js',
   'github-sync.js',
+  'Start-App.exe',
   'CarManagement.exe',
   'MakeShortcut.exe',
   'Setup.exe',
