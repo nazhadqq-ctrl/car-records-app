@@ -1134,7 +1134,7 @@ const server = http.createServer((req, res) => {
 
       const Psulla = parsedPsulla;
       const date_ = body.date_ || new Date().toISOString().slice(0, 10);
-      const user_ = session ? session.username : 'admin';
+      const user_ = session ? session.username : (body.user_ || 'admin');
       const AA = String(body.AA || '').trim();
       const BBB = String(body.BBB || '').trim();
       const CCC = String(body.CCC || '').trim();
@@ -1193,7 +1193,7 @@ const server = http.createServer((req, res) => {
       } catch (batchErr) {
         console.error('defects-batch SQL error:', batchErr);
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: 'A database error occurred' }));
+        return res.end(JSON.stringify({ error: batchErr.message || 'A database error occurred' }));
       }
     });
     return;

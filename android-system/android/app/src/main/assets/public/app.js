@@ -2582,64 +2582,92 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Submit Defects Form (Batch Insert into dbo.BB)
-  if (defectsForm) {
-    defectsForm.addEventListener('submit', async (e) => {
+  // ─── BATCH SAVE DEFECTS TO dbo.BB ───
+  async function handleDefectsBatchSave(e) {
+    if (e && typeof e.preventDefault === 'function') {
       e.preventDefault();
-      if (!state.currentUser) {
-        alert('کاتی دانیشتنەکە بەسەرچوو. تکایە دووبارە بچۆژوورەوە.');
-        showView('login');
-        return;
-      }
+    }
 
-      if (!validateCarDetailsFields()) return;
+    if (!state.currentUser) {
+      alert('کاتی دانیشتنەکە بەسەرچوو. تکایە دووبارە بچۆژوورەوە.');
+      showView('login');
+      return;
+    }
 
-      if (state.queuedDefects.length === 0) {
-        alert('⚠️ تکایە لانیکەم یەک کە��وکوڕی زیاد بکە بۆ لیست بەرلەوەی پاشەکەوتی بکەیت!');
+    if (!validateCarDetailsFields()) return;
+
+    // Auto-add current input if user selected or typed a defect but forgot to click '+'
+    if (state.queuedDefects.length === 0) {
+      if (dfXxInput && dfXxInput.value.trim()) {
+        state.queuedDefects.push(dfXxInput.value.trim());
+        dfXxInput.value = '';
+        if (dfXxMenu) dfXxMenu.style.display = 'none';
+        renderDefectsGrid();
+      } else if (dfXxSelect && dfXxSelect.value.trim()) {
+        state.queuedDefects.push(dfXxSelect.value.trim());
+        dfXxSelect.value = '';
+        renderDefectsGrid();
+      } else {
+        alert('⚠️ تکایە لانیکەم یەک کەموکوڕی زیاد بکە بۆ لیست بەرلەوەی پاشەکەوتی بکەیت!');
         if (dfXxInput) dfXxInput.focus();
         return;
       }
+    }
 
-      const currentUserName = state.currentUser ? (state.currentUser.User_ || state.currentUser.Username || state.currentUser.username || 'admin') : 'admin';
+    const currentUserName = state.currentUser ? (state.currentUser.User_ || state.currentUser.Username || state.currentUser.username || 'admin') : 'admin';
 
-      const payload = {
-        AA: dfAA ? dfAA.value.trim() : '',
-        BBB: dfBBB ? dfBBB.value.trim() : '',
-        CCC: dfCCC ? dfCCC.value.trim() : '',
-        DDD: dfDDD ? dfDDD.value.trim() : '',
-        Psulla: dfPsulla && dfPsulla.value ? dfPsulla.value : null,
-        date_: dfDate ? dfDate.value : new Date().toISOString().slice(0, 10),
-        user_: currentUserName,
-        EEE: null,
-        defects: state.queuedDefects
-      };
+    const payload = {
+      AA: dfAA ? dfAA.value.trim() : '',
+      BBB: dfBBB ? dfBBB.value.trim() : '',
+      CCC: dfCCC ? dfCCC.value.trim() : '',
+      DDD: dfDDD ? dfDDD.value.trim() : '',
+      Psulla: dfPsulla && dfPsulla.value ? dfPsulla.value : null,
+      date_: dfDate && dfDate.value ? dfDate.value : new Date().toISOString().slice(0, 10),
+      user_: currentUserName,
+      EEE: null,
+      defects: [...state.queuedDefects]
+    };
 
-      const saveBtn = document.getElementById('btn-save-all-defects');
-      if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '⏳ لە حاڵەتی پاشەکەوتکردن...'; }
+    const saveBtn = document.getElementById('btn-save-all-defects');
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '⏳ <span>لە حاڵەتی پاشەکەوتکردن...</span>';
+    }
 
-      try {
-        const res = await authFetch('/api/defects-batch', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
+    try {
+      const res = await authFetch('/api/defects-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
 
-        if (data.success) {
-          alert(`✅ کەموکوڕییەکان بە سەرکەوتوویی پاشەکەوتکران (وەسڵ #${data.Psulla})`);
-          state.queuedDefects = [];
-          renderDefectsGrid();
-          if (dfPsulla) dfPsulla.value = '';
-          loadDefectsBBHistory();
-        } else {
-          alert('هەڵە لە پاشەکەوتکردن: ' + (data.error || 'کێشە لە پەیوەندی'));
-        }
-      } catch (err) {
-        alert('هەڵەی پەیوەندی سێرڤەر: ' + err.message);
-      } finally {
-        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '💾 <span>پاشەکەوتکردنی هەموو کەموکوڕییەکان بە یەک جار</span>'; }
+      if (res.ok && data.success) {
+        alert(`✅ کەموکوڕییەکان بە سەرکەوتوویی پاشەکەوتکران (وەسڵ #${data.Psulla})`);
+        state.queuedDefects = [];
+        renderDefectsGrid();
+        if (dfPsulla) dfPsulla.value = '';
+        loadDefectsBBHistory();
+      } else {
+        alert('هەڵە لە پاشەکەوتکردن: ' + (data.error || 'کێشە لە پەیوەندی سێرڤەر'));
       }
-    });
+    } catch (err) {
+      alert('هەڵەی پەیوەندی سێرڤەر: ' + err.message);
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i data-lucide="database"></i> <span>💾 پاشەکەوتکردنی هەموو کەموکوڕییەکان بە یەک جار</span>';
+        if (window.lucide) lucide.createIcons();
+      }
+    }
+  }
+
+  const btnSaveAllDefects = document.getElementById('btn-save-all-defects');
+  if (btnSaveAllDefects) {
+    btnSaveAllDefects.addEventListener('click', handleDefectsBatchSave);
+  }
+  if (defectsForm) {
+    defectsForm.addEventListener('submit', handleDefectsBatchSave);
   }
 
   const bbHistoryCountBadge = document.getElementById('bb-history-count-badge');
