@@ -5,7 +5,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   // Professional Log Filtering for Production
-  if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+  if (window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     console.log = function() {};
     console.info = function() {};
   }
@@ -66,6 +66,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // ─── ANDROID SERVER URL BASE ───
+  // When running inside Android WebView (file:// protocol), we need a base URL for API calls
+  function getApiBase() {
+    // If running from a server (http/https), use relative URLs as-is
+    if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+      return '';
+    }
+    // For file:// (Android WebView), get saved server URL
+    const saved = localStorage.getItem('car_app_server_url');
+    return saved ? saved.replace(/\/+$/, '') : '';
+  }
+
+  // Check if we need server URL configuration (Android mode)
+  function isAndroidMode() {
+    return window.location.protocol === 'file:';
+  }
+
+  function isServerConfigured() {
+    return !isAndroidMode() || !!localStorage.getItem('car_app_server_url');
+  }
+
   const state = {
     currentUser: JSON.parse(sessionStorage.getItem('car_app_user') || localStorage.getItem('car_app_user') || 'null'),
     sessionToken: sessionStorage.getItem('car_app_token') || localStorage.getItem('car_app_token') || '',
@@ -84,7 +105,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.sessionToken) {
       headers['Authorization'] = `Bearer ${state.sessionToken}`;
     }
-    return fetch(url, { ...options, headers });
+    const fullUrl = (url.startsWith('/') ? getApiBase() : '') + url;
+    return fetch(fullUrl, { ...options, headers });
   }
 
   // DOM Elements
@@ -206,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const password = secAdminPass.value.trim();
 
       try {
-        const res = await fetch('/api/verify-admin', {
+        const res = await fetch(getApiBase() + '/api/verify-admin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
@@ -351,6 +373,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
+    // Android mode: check if server URL is configured
+    if (isAndroidMode() && !isServerConfigured()) {
+      showView('server-config');
+      return;
+    }
+
     if (!state.currentUser) {
       showView('login');
     } else {
@@ -368,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const password = document.getElementById('login-password').value;
 
     try {
-      const res = await fetch('/api/login', {
+      const res = await fetch(getApiBase() + '/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -857,7 +885,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadSearchResults(query) {
     const tbody = document.getElementById('search-results-tbody');
     try {
-      const res = await fetch('/api/car-records');
+      const res = await fetch(getApiBase() + '/api/car-records');
       let records = await res.json();
 
       if (query) {
@@ -1098,7 +1126,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gpsText.textContent = `✅ GPS: ${capturedGPS.lat}, ${capturedGPS.lng} (±${capturedGPS.accuracy}m) — ${capturedGPS.timestamp}`;
 
         // Fetch Reverse Geocoded Place Name in background
-        fetch(`/api/reverse-geocode?lat=${capturedGPS.lat}&lng=${capturedGPS.lng}`)
+        fetch(getApiBase() + `/api/reverse-geocode?lat=${capturedGPS.lat}&lng=${capturedGPS.lng}`)
           .then(r => r.json())
           .then(geo => {
             if (geo.placeName) {
@@ -1713,7 +1741,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tbody = document.getElementById('car-records-tbody');
     if (!tbody) return;
     try {
-      const res = await fetch('/api/car-records');
+      const res = await fetch(getApiBase() + '/api/car-records');
       const records = await res.json();
 
       if (records.length === 0) {
@@ -1758,7 +1786,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btn) { btn.innerHTML = '⏳ Loading...'; btn.disabled = true; }
 
     try {
-      const res = await fetch('/api/car-record?id=' + recordId);
+      const res = await fetch(getApiBase() + '/api/car-record?id=' + recordId);
       if (!res.ok) throw new Error('Record not found');
       const r = await res.json();
 
@@ -2273,7 +2301,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const carNoVal = dfAA.value.trim();
         if (carNoVal.length >= 2) {
           try {
-            const res = await fetch('/api/search?q=' + encodeURIComponent(carNoVal));
+            const res = await fetch(getApiBase() + '/api/search?q=' + encodeURIComponent(carNoVal));
             const records = await res.json();
             if (Array.isArray(records) && records.length > 0) {
               const matched = records.find(r => (r.carNo || '').toUpperCase() === carNoVal.toUpperCase()) || records[0];
@@ -2350,7 +2378,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadDefectsSuggestions() {
     try {
-      const res = await fetch('/api/defects-list');
+      const res = await fetch(getApiBase() + '/api/defects-list');
       const data = await res.json();
       if (data.success && Array.isArray(data.items)) {
         state.defectsList = data.items;
@@ -2491,7 +2519,7 @@ document.addEventListener('DOMContentLoaded', () => {
       defectsGridTbody.innerHTML = `
         <tr>
           <td colspan="3" style="text-align:center; color:var(--text-muted); padding:1.5rem;">
-            هیچ کەموکوڕییەک زیانەنەکراوە. لە سەرەوە کەموکوڕی هەڵبژێرە و دوگمەی (➕ زیادکردن) دابگرە.
+            هیچ کەموکوڕییەک زیادنەکراوە. لە سەرەوە کەموکوڕی هەڵبژێرە و دوگمەی (➕ زیادکردن) دابگرە.
           </td>
         </tr>`;
       return;
@@ -2809,7 +2837,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadSystemVersion() {
     try {
-      const res = await fetch('/api/system/version');
+      const res = await fetch(getApiBase() + '/api/system/version');
       if (res.ok) {
         const data = await res.json();
         const verStr = `v${data.version || '1.1.0'}`;
@@ -2854,7 +2882,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showLoading(updateStatusMsg);
 
     try {
-      const res = await fetch('/api/system/check-update', {
+      const res = await fetch(getApiBase() + '/api/system/check-update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ force: isForce })
@@ -2904,7 +2932,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let reloadAttempts = 0;
         const checkAndReload = async () => {
           try {
-            const testRes = await fetch('/api/setup-status?t=' + Date.now());
+            const testRes = await fetch(getApiBase() + '/api/setup-status?t=' + Date.now());
             if (testRes.ok) {
               window.location.reload();
               return;
@@ -3030,5 +3058,75 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Launch app
+
+  // ─── ANDROID SERVER URL CONFIGURATION ───
+  const serverConfigForm = document.getElementById('server-config-form');
+  if (serverConfigForm) {
+    // Pre-fill from localStorage
+    const savedUrl = localStorage.getItem('car_app_server_url') || '';
+    const serverUrlInput = document.getElementById('server-url-input');
+    if (serverUrlInput && savedUrl) {
+      serverUrlInput.value = savedUrl;
+    }
+
+    serverConfigForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const urlInput = document.getElementById('server-url-input');
+      let serverUrl = urlInput ? urlInput.value.trim() : '';
+      
+      if (!serverUrl) {
+        alert('تکایە ناونیشانی سێرڤەر بنووسە\nPlease enter the server address');
+        return;
+      }
+
+      // Auto-add http:// if not present
+      if (!serverUrl.startsWith('http://') && !serverUrl.startsWith('https://')) {
+        serverUrl = 'http://' + serverUrl;
+      }
+      // Remove trailing slash
+      serverUrl = serverUrl.replace(/\/+$/, '');
+
+      // Test connection
+      const statusEl = document.getElementById('server-config-status');
+      if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.style.color = 'var(--accent-amber)';
+        statusEl.textContent = '⏳ تاقیکردنەوەی پەیوەندی... Testing connection...';
+      }
+
+      try {
+        const testRes = await fetch(serverUrl + '/api/setup-status?t=' + Date.now());
+        const testData = await testRes.json();
+        
+        if (testData) {
+          // Success! Save and proceed
+          localStorage.setItem('car_app_server_url', serverUrl);
+          if (statusEl) {
+            statusEl.style.color = 'var(--accent-emerald)';
+            statusEl.textContent = '✅ پەیوەندی سەرکەوتوو بوو! Connected!';
+          }
+          setTimeout(() => {
+            showView('login');
+            fetchServerStatus();
+          }, 800);
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.style.color = '#f87171';
+          statusEl.textContent = '❌ پەیوەندی سەرنەکەوت: ' + err.message + '\nتکایە ئای‌پی سێرڤەر و پۆرت بپشکنە';
+        }
+      }
+    });
+  }
+
+  // Server config change button (from login or settings)
+  const btnChangeServer = document.getElementById('btn-change-server-url');
+  if (btnChangeServer) {
+    btnChangeServer.addEventListener('click', () => {
+      showView('server-config');
+    });
+  }
+
+
   initApp();
 });
