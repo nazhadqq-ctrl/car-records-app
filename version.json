@@ -1,7 +1,7 @@
 {
-  "version": "1.3.2",
-  "build": 170,
+  "version": "1.3.3",
+  "build": 180,
   "developer": "نەژاد قادر محمد",
-  "description": "چاککردنی پاشەکەوتکردنی هەموو کەموکوڕییەکان بە یەک جار و پاشەکەوتکردنی زیرەکانە",
-  "lastSha": "v1.3.2-fix-defects-batch-save"
+  "description": "ڕێکخستنی بنەڕەتیی بەستنەوەی سێرڤەر بۆ ئەندرۆید و نوێکردنەوەی سیستم بە شێوازی ڤێرژن لە گیتهاب",
+  "lastSha": "v1.3.3-android-server-connect-and-auto-update"
 }

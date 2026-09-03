@@ -17,10 +17,6 @@ const FILES_TO_UPDATE = [
   'config.json',
   'auto-updater.js',
   'github-sync.js',
-  'Start-App.exe',
-  'CarManagement.exe',
-  'MakeShortcut.exe',
-  'Setup.exe',
   'Start-App-Silent.vbs',
   'Start-Desktop-App-Silent.vbs',
   'Start-App.bat',
@@ -28,9 +24,23 @@ const FILES_TO_UPDATE = [
   'public/styles.css',
   'public/index.html',
   'public/app.js',
+  'public/config.js',
+  'public/lucide.min.js',
   'public/profile-avatar.jpg',
   'public/traffic-it-logo.jpg',
-  'server.js'
+  'public/app-icon.png',
+  'public/favicon.ico',
+  'server.js',
+  'android-system/android/app/src/main/assets/public/styles.css',
+  'android-system/android/app/src/main/assets/public/index.html',
+  'android-system/android/app/src/main/assets/public/app.js',
+  'android-system/android/app/src/main/assets/public/config.js',
+  'android-system/android/app/src/main/assets/public/lucide.min.js',
+  'android-system/www/styles.css',
+  'android-system/www/index.html',
+  'android-system/www/app.js',
+  'android-system/www/config.js',
+  'android-system/www/lucide.min.js'
 ];
 
 function fetchUrl(url, timeoutMs = 8000) {
@@ -68,7 +78,7 @@ function getLocalVersion() {
       return JSON.parse(fs.readFileSync(p, 'utf8'));
     }
   } catch (e) {}
-  return { version: '1.1.0', build: 110 };
+  return { version: '1.3.3', build: 180 };
 }
 
 async function checkForUpdates(force = false) {
@@ -76,9 +86,9 @@ async function checkForUpdates(force = false) {
   let remoteVer = null;
   let hasUpdate = false;
 
-  // 1. Try fetching remote version.json
+  // 1. Try fetching remote version.json from GitHub
   try {
-    const verData = await fetchUrl(`${BASE_RAW_URL}/version.json?t=${Date.now()}`, 5000);
+    const verData = await fetchUrl(`${BASE_RAW_URL}/version.json?t=${Date.now()}`, 6000);
     remoteVer = JSON.parse(verData.toString('utf8'));
     if (remoteVer.build && remoteVer.build > (localVer.build || 0)) {
       hasUpdate = true;
@@ -86,7 +96,7 @@ async function checkForUpdates(force = false) {
   } catch (err) {
     if (force) {
       hasUpdate = true;
-      remoteVer = { version: localVer.version, build: (localVer.build || 100) + 1 };
+      remoteVer = { version: localVer.version, build: (localVer.build || 180) + 1 };
     } else {
       return {
         success: true,
@@ -120,7 +130,7 @@ async function checkForUpdates(force = false) {
   for (const relPath of FILES_TO_UPDATE) {
     try {
       const fileUrl = `${BASE_RAW_URL}/${relPath}?t=${Date.now()}`;
-      const content = await fetchUrl(fileUrl, 8000);
+      const content = await fetchUrl(fileUrl, 10000);
 
       const localPath = path.join(__dirname, relPath);
       const dir = path.dirname(localPath);
@@ -150,7 +160,7 @@ async function checkForUpdates(force = false) {
     newVersion: remoteVer ? remoteVer.version : localVer.version,
     updatedFiles,
     errors: errors.length > 0 ? errors : undefined,
-    message: `بە سەرکەوتوویی نوێکرایەوە!`
+    message: `سیستەمەکە بە سەرکەوتوویی نوێکرایەوە بۆ وەشانی (${remoteVer ? remoteVer.version : localVer.version})!`
   };
 }
 

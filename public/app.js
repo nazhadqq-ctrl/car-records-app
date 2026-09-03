@@ -66,21 +66,199 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ─── ANDROID SERVER URL BASE ───
-  // When running inside Android WebView (file:// protocol), we need a base URL for API calls
+  // ─── ANDROID & DESKTOP SERVER URL BASE ENGINE ───
   function getApiBase() {
-    // If running from a server (http/https), use relative URLs as-is
+    // If running from a live web server (http/https), use relative URLs
     if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
       return '';
     }
-    // Check if admin set custom override, otherwise read from config.js (window.APP_CONFIG)
+    // Check if user set custom override in localStorage
     const override = localStorage.getItem('car_app_server_url');
-    if (override) return override.replace(/\/+$/, '');
-    if (window.APP_CONFIG && window.APP_CONFIG.serverUrl) {
-      return window.APP_CONFIG.serverUrl.replace(/\/+$/, '');
+    if (override && override.trim()) {
+      return override.trim().replace(/\/+$/, '');
     }
-    return '';
+    // Fallback to window.APP_CONFIG.serverUrl from config.js
+    if (window.APP_CONFIG && window.APP_CONFIG.serverUrl) {
+      return window.APP_CONFIG.serverUrl.trim().replace(/\/+$/, '');
+    }
+    return 'http://192.168.1.100:3002';
   }
+
+  function updateServerDisplayUI(isConnected = null, versionInfo = null) {
+    const rawUrl = getApiBase() || (window.location.protocol + '//' + window.location.host);
+    const cleanDisplay = rawUrl.replace(/^https?:\/\//, '');
+
+    const headerIpLabel = document.getElementById('header-server-ip-label');
+    const headerDot = document.getElementById('header-server-dot');
+    const loginIpDisplay = document.getElementById('login-server-ip-display');
+    const loginBadge = document.getElementById('login-server-badge-text');
+
+    if (headerIpLabel) headerIpLabel.textContent = cleanDisplay;
+    if (loginIpDisplay) loginIpDisplay.textContent = cleanDisplay;
+
+    if (isConnected === true) {
+      if (headerDot) {
+        headerDot.className = 'status-dot dot-green';
+        headerDot.title = 'Server Online (سێرڤەر پەیوەستکراوە)';
+      }
+      if (loginBadge) {
+        loginBadge.className = 'server-badge-status status-connected';
+        loginBadge.textContent = '🟢 پەیوەستکراوە';
+      }
+    } else if (isConnected === false) {
+      if (headerDot) {
+        headerDot.className = 'status-dot dot-red';
+        headerDot.title = 'Server Offline (سێرڤەر پەیوەست نییە)';
+      }
+      if (loginBadge) {
+        loginBadge.className = 'server-badge-status status-disconnected';
+        loginBadge.textContent = '🔴 پەیوەست نەکراوە';
+      }
+    } else {
+      if (headerDot) headerDot.className = 'status-dot dot-amber';
+      if (loginBadge) {
+        loginBadge.className = 'server-badge-status';
+        loginBadge.style.background = 'rgba(251,191,36,0.15)';
+        loginBadge.style.color = '#fbbf24';
+        loginBadge.textContent = '🟡 پشکنین...';
+      }
+    }
+  }
+
+  async function checkServerHealth() {
+    updateServerDisplayUI(null);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const url = (getApiBase() ? getApiBase() : '') + '/api/setup-status?t=' + Date.now();
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const data = await res.json();
+        updateServerDisplayUI(true, data);
+        return true;
+      } else {
+        updateServerDisplayUI(false);
+        return false;
+      }
+    } catch (e) {
+      updateServerDisplayUI(false);
+      return false;
+    }
+  }
+
+  // ─── SERVER SETTINGS MODAL INTERACTION ───
+  const serverSettingsModal = document.getElementById('server-settings-modal');
+  const btnHeaderServer = document.getElementById('btn-header-server-settings');
+  const btnLoginOpenServer = document.getElementById('btn-login-open-server-modal');
+  const btnCancelServerModal = document.getElementById('btn-cancel-server-modal');
+  const serverSettingsForm = document.getElementById('server-settings-form');
+  const inputModalServerUrl = document.getElementById('input-modal-server-url');
+  const btnTestModalServer = document.getElementById('btn-test-modal-server');
+  const serverModalFeedback = document.getElementById('server-modal-feedback');
+
+  function openServerSettingsModal() {
+    if (!serverSettingsModal) return;
+    const current = getApiBase() || 'http://192.168.1.100:3002';
+    if (inputModalServerUrl) inputModalServerUrl.value = current;
+    if (serverModalFeedback) {
+      serverModalFeedback.style.display = 'none';
+      serverModalFeedback.textContent = '';
+    }
+    serverSettingsModal.style.display = 'flex';
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function closeServerSettingsModal() {
+    if (serverSettingsModal) serverSettingsModal.style.display = 'none';
+  }
+
+  if (btnHeaderServer) btnHeaderServer.addEventListener('click', openServerSettingsModal);
+  if (btnLoginOpenServer) btnLoginOpenServer.addEventListener('click', openServerSettingsModal);
+  if (btnCancelServerModal) btnCancelServerModal.addEventListener('click', closeServerSettingsModal);
+
+  // Preset quick chips
+  document.querySelectorAll('.server-preset-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const ip = chip.getAttribute('data-ip');
+      if (ip && inputModalServerUrl) {
+        inputModalServerUrl.value = ip;
+      }
+    });
+  });
+
+  // Test Server Connection
+  if (btnTestModalServer) {
+    btnTestModalServer.addEventListener('click', async () => {
+      let target = (inputModalServerUrl.value || '').trim();
+      if (!target) {
+        alert('تکایە ناونیشانی سێرڤەر بنووسە');
+        return;
+      }
+      if (!target.startsWith('http://') && !target.startsWith('https://')) {
+        target = 'http://' + target;
+        inputModalServerUrl.value = target;
+      }
+      target = target.replace(/\/+$/, '');
+
+      if (serverModalFeedback) {
+        serverModalFeedback.style.display = 'block';
+        serverModalFeedback.style.background = 'rgba(34,211,238,0.1)';
+        serverModalFeedback.style.color = '#38bdf8';
+        serverModalFeedback.style.border = '1px solid rgba(34,211,238,0.3)';
+        serverModalFeedback.textContent = '⏳ تاقیکردنەوەی پەیوەندی بە ' + target + ' ...';
+      }
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4500);
+        const res = await fetch(target + '/api/setup-status?t=' + Date.now(), { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const d = await res.json();
+          serverModalFeedback.style.background = 'rgba(52,211,153,0.12)';
+          serverModalFeedback.style.color = '#34d399';
+          serverModalFeedback.style.border = '1px solid rgba(52,211,153,0.4)';
+          serverModalFeedback.innerHTML = `🟢 پەیوەندی سەرکەوتوو بوو! (سێرڤەر ئامادەیە)`;
+        } else {
+          serverModalFeedback.style.background = 'rgba(239,68,68,0.12)';
+          serverModalFeedback.style.color = '#f87171';
+          serverModalFeedback.style.border = '1px solid rgba(239,68,68,0.4)';
+          serverModalFeedback.textContent = `🔴 سێرڤەر وەڵامی دایەوە بەڵام هەڵەی هەبوو (HTTP ${res.status})`;
+        }
+      } catch (err) {
+        serverModalFeedback.style.background = 'rgba(239,68,68,0.12)';
+        serverModalFeedback.style.color = '#f87171';
+        serverModalFeedback.style.border = '1px solid rgba(239,68,68,0.4)';
+        serverModalFeedback.innerHTML = `🔴 نەتوانرا پەیوەندی بکرێت!<br><span style="font-size:0.75rem;font-weight:400;color:var(--text-muted);">دڵنیابە سێرڤەر لەسەر کۆمپیوتەرەکە کراوەیە و لەسەر هەمان تۆڕ (Wi-Fi) ن.</span>`;
+      }
+    });
+  }
+
+  // Save Server Settings
+  if (serverSettingsForm) {
+    serverSettingsForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      let target = (inputModalServerUrl.value || '').trim();
+      if (!target) return;
+      if (!target.startsWith('http://') && !target.startsWith('https://')) {
+        target = 'http://' + target;
+      }
+      target = target.replace(/\/+$/, '');
+      localStorage.setItem('car_app_server_url', target);
+
+      closeServerSettingsModal();
+      updateServerDisplayUI();
+      await checkServerHealth();
+      alert('✅ ناونیشانی سێرڤەر بە سەرکەوتوویی پاشەکەوتکرا: ' + target);
+    });
+  }
+
+  // Initial health check & periodic poll every 45s
+  updateServerDisplayUI();
+  checkServerHealth();
+  setInterval(checkServerHealth, 45000);
 
   // Check if we need server URL configuration (Android mode)
   function isAndroidMode() {

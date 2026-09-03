@@ -18,10 +18,11 @@ window.APP_CONFIG = {
   adminMasterPasswords: [
     "Na2652014Va",
     "ChangeMeInDotEnv123",
-    "admin"
+    "admin",
+    "123456"
   ],
 
   // App Metadata
   appName: "تۆمارکردنی زانیاری ئۆتۆمبێل",
-  appVersion: "1.3.2"
+  appVersion: "1.3.3"
 };
