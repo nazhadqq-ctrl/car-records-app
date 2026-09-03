@@ -73,9 +73,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
       return '';
     }
-    // For file:// (Android WebView), get saved server URL
-    const saved = localStorage.getItem('car_app_server_url');
-    return saved ? saved.replace(/\/+$/, '') : '';
+    // Check if admin set custom override, otherwise read from config.js (window.APP_CONFIG)
+    const override = localStorage.getItem('car_app_server_url');
+    if (override) return override.replace(/\/+$/, '');
+    if (window.APP_CONFIG && window.APP_CONFIG.serverUrl) {
+      return window.APP_CONFIG.serverUrl.replace(/\/+$/, '');
+    }
+    return '';
   }
 
   // Check if we need server URL configuration (Android mode)
@@ -373,11 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Android mode: check if server URL is configured
-    if (isAndroidMode() && !isServerConfigured()) {
-      showView('server-config');
-      return;
-    }
+
 
     if (!state.currentUser) {
       showView('login');
@@ -1310,8 +1310,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
-    pletMenu.addEventListener('pointerdown', handleItemSelect);
-    pletMenu.addEventListener('touchstart', handleItemSelect, { passive: false });
     pletMenu.addEventListener('click', handleItemSelect);
 
     // Close when tapping outside
@@ -1387,8 +1385,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
-    cdPletMenu.addEventListener('pointerdown', handleCdItemSelect);
-    cdPletMenu.addEventListener('touchstart', handleCdItemSelect, { passive: false });
     cdPletMenu.addEventListener('click', handleCdItemSelect);
 
     document.addEventListener('pointerdown', (e) => {
@@ -1509,8 +1505,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
-    menu.addEventListener('pointerdown', handleSelect);
-    menu.addEventListener('touchstart', handleSelect, { passive: false });
     menu.addEventListener('click', handleSelect);
 
     document.addEventListener('pointerdown', (e) => {
@@ -2283,8 +2277,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
-    dfCccMenu.addEventListener('pointerdown', handleDfPletSelect);
-    dfCccMenu.addEventListener('touchstart', handleDfPletSelect, { passive: false });
     dfCccMenu.addEventListener('click', handleDfPletSelect);
 
     document.addEventListener('pointerdown', (e) => {
@@ -2611,10 +2603,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ─── BATCH SAVE DEFECTS TO dbo.BB ───
+  let isBatchSaving = false;
   async function handleDefectsBatchSave(e) {
     if (e && typeof e.preventDefault === 'function') {
       e.preventDefault();
     }
+    if (isBatchSaving) return;
+    isBatchSaving = true;
 
     if (!state.currentUser) {
       alert('کاتی دانیشتنەکە بەسەرچوو. تکایە دووبارە بچۆژوورەوە.');
@@ -2682,6 +2677,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       alert('هەڵەی پەیوەندی سێرڤەر: ' + err.message);
     } finally {
+      isBatchSaving = false;
       if (saveBtn) {
         saveBtn.disabled = false;
         saveBtn.innerHTML = '<i data-lucide="database"></i> <span>💾 پاشەکەوتکردنی هەموو کەموکوڕییەکان بە یەک جار</span>';
@@ -3059,73 +3055,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Launch app
 
-  // ─── ANDROID SERVER URL CONFIGURATION ───
-  const serverConfigForm = document.getElementById('server-config-form');
-  if (serverConfigForm) {
-    // Pre-fill from localStorage
-    const savedUrl = localStorage.getItem('car_app_server_url') || '';
-    const serverUrlInput = document.getElementById('server-url-input');
-    if (serverUrlInput && savedUrl) {
-      serverUrlInput.value = savedUrl;
-    }
 
-    serverConfigForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const urlInput = document.getElementById('server-url-input');
-      let serverUrl = urlInput ? urlInput.value.trim() : '';
-      
-      if (!serverUrl) {
-        alert('تکایە ناونیشانی سێرڤەر بنووسە\nPlease enter the server address');
-        return;
-      }
-
-      // Auto-add http:// if not present
-      if (!serverUrl.startsWith('http://') && !serverUrl.startsWith('https://')) {
-        serverUrl = 'http://' + serverUrl;
-      }
-      // Remove trailing slash
-      serverUrl = serverUrl.replace(/\/+$/, '');
-
-      // Test connection
-      const statusEl = document.getElementById('server-config-status');
-      if (statusEl) {
-        statusEl.style.display = 'block';
-        statusEl.style.color = 'var(--accent-amber)';
-        statusEl.textContent = '⏳ تاقیکردنەوەی پەیوەندی... Testing connection...';
-      }
-
-      try {
-        const testRes = await fetch(serverUrl + '/api/setup-status?t=' + Date.now());
-        const testData = await testRes.json();
-        
-        if (testData) {
-          // Success! Save and proceed
-          localStorage.setItem('car_app_server_url', serverUrl);
-          if (statusEl) {
-            statusEl.style.color = 'var(--accent-emerald)';
-            statusEl.textContent = '✅ پەیوەندی سەرکەوتوو بوو! Connected!';
-          }
-          setTimeout(() => {
-            showView('login');
-            fetchServerStatus();
-          }, 800);
-        }
-      } catch (err) {
-        if (statusEl) {
-          statusEl.style.color = '#f87171';
-          statusEl.textContent = '❌ پەیوەندی سەرنەکەوت: ' + err.message + '\nتکایە ئای‌پی سێرڤەر و پۆرت بپشکنە';
-        }
-      }
-    });
-  }
-
-  // Server config change button (from login or settings)
-  const btnChangeServer = document.getElementById('btn-change-server-url');
-  if (btnChangeServer) {
-    btnChangeServer.addEventListener('click', () => {
-      showView('server-config');
-    });
-  }
 
 
   initApp();

@@ -1103,37 +1103,6 @@
       </div>
     </section>
 
-    <!-- SERVER URL CONFIG VIEW (Android Only) -->
-    <section id="view-server-config" class="page-view">
-      <div style="max-width:420px; margin:0 auto;">
-        <div class="glass-card">
-          <h2 class="card-title">
-            <span style="font-size:1.5rem;">🌐</span>
-            <span>ڕێکخستنی سێرڤەر (Server Setup)</span>
-          </h2>
-          <p class="card-subtitle">تکایە ئای‌پی سێرڤەرەکە بنووسە کە سیستمەکە لەسەری بیلدکراوە.<br>Enter the server IP address where the system is running.</p>
-
-          <form id="server-config-form">
-            <div class="form-group" style="margin-bottom: 1.25rem;">
-              <label>Server Address (ناونیشانی سێرڤەر)</label>
-              <input type="text" id="server-url-input" required placeholder="e.g. 192.168.1.100:3002" 
-                style="font-size:1.1rem; text-align:center; letter-spacing:1px; font-weight:600; direction:ltr;">
-              <small style="color:var(--text-muted); display:block; margin-top:0.4rem; font-size:0.72rem;">
-                نمونە: 192.168.1.100:3002 — هەمان ئای‌پی و پۆرتی سیستمەکەت بنووسە
-              </small>
-            </div>
-
-            <div id="server-config-status" style="display:none; padding:0.7rem; border-radius:8px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); font-size:0.85rem; margin-bottom:1rem; text-align:center; font-weight:600;"></div>
-
-            <button type="submit" class="btn btn-primary" style="width:100%;">
-              <span>🔗</span>
-              <span>تاقیکردنەوە و پەیوەستبوون (Connect)</span>
-            </button>
-          </form>
-        </div>
-      </div>
-    </section>
-
     <!-- LOGIN VIEW -->
     <section id="view-login" class="page-view active">
       <div style="max-width:420px; margin:0 auto;">
@@ -1158,11 +1127,6 @@
               <span>Sign In</span>
             </button>
           </form>
-
-          <!-- Change Server Button (Android Only) -->
-          <button type="button" class="btn btn-secondary" id="btn-change-server-url" style="width:100%; margin-top:0.75rem; font-size:0.78rem; opacity:0.7;">
-            🌐 گۆڕینی سێرڤەر (Change Server)
-          </button>
         </div>
 
         <!-- Developer Credit Card Under Login -->
@@ -1228,6 +1192,7 @@
     </div>
   </main>
 
+  <script src="config.js?v=1.3.2"></script>
   <script src="app.js?v=20260831-build150"></script>
 </body>
 </html>
