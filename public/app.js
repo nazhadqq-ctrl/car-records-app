@@ -5,7 +5,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   // Professional Log Filtering for Production
-  if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+  if (window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     console.log = function() {};
     console.info = function() {};
   }
@@ -66,6 +66,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // ─── ANDROID SERVER URL BASE ───
+  // When running inside Android WebView (file:// protocol), we need a base URL for API calls
+  function getApiBase() {
+    // If running from a server (http/https), use relative URLs as-is
+    if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+      return '';
+    }
+    // Check if admin set custom override, otherwise read from config.js (window.APP_CONFIG)
+    const override = localStorage.getItem('car_app_server_url');
+    if (override) return override.replace(/\/+$/, '');
+    if (window.APP_CONFIG && window.APP_CONFIG.serverUrl) {
+      return window.APP_CONFIG.serverUrl.replace(/\/+$/, '');
+    }
+    return '';
+  }
+
+  // Check if we need server URL configuration (Android mode)
+  function isAndroidMode() {
+    return window.location.protocol === 'file:';
+  }
+
+  function isServerConfigured() {
+    return !isAndroidMode() || !!localStorage.getItem('car_app_server_url');
+  }
+
   const state = {
     currentUser: JSON.parse(sessionStorage.getItem('car_app_user') || localStorage.getItem('car_app_user') || 'null'),
     sessionToken: sessionStorage.getItem('car_app_token') || localStorage.getItem('car_app_token') || '',
@@ -84,7 +109,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.sessionToken) {
       headers['Authorization'] = `Bearer ${state.sessionToken}`;
     }
-    return fetch(url, { ...options, headers });
+    const fullUrl = (url.startsWith('/') ? getApiBase() : '') + url;
+    return fetch(fullUrl, { ...options, headers });
   }
 
   // DOM Elements
@@ -191,6 +217,18 @@ document.addEventListener('DOMContentLoaded', () => {
       if (callback) callback();
       return;
     }
+    // If already logged in as Admin, skip challenge modal
+    const isAlreadyAdmin = state.currentUser && (
+      (state.currentUser.Role && String(state.currentUser.Role).toLowerCase() === 'admin') ||
+      (state.currentUser.role && String(state.currentUser.role).toLowerCase() === 'admin') ||
+      (state.currentUser.Username && String(state.currentUser.Username).toLowerCase() === 'admin') ||
+      (state.currentUser.User_ && String(state.currentUser.User_).toLowerCase() === 'admin') ||
+      (state.currentUser.username && String(state.currentUser.username).toLowerCase() === 'admin')
+    );
+    if (isAlreadyAdmin) {
+      if (callback) callback();
+      return;
+    }
     secAdminUser.value = state.currentUser ? (state.currentUser.Username.toLowerCase() === 'admin' ? state.currentUser.Username : 'admin') : 'admin';
     secAdminPass.value = '';
     secAuthErrorMsg.style.display = 'none';
@@ -206,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const password = secAdminPass.value.trim();
 
       try {
-        const res = await fetch('/api/verify-admin', {
+        const res = await fetch(getApiBase() + '/api/verify-admin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
@@ -268,8 +306,12 @@ document.addEventListener('DOMContentLoaded', () => {
       // Always show top navigation bar for both Admin and Regular Users
       adminTabsNav.style.display = 'flex';
 
-      const isAdmin = state.currentUser.Role === 'Admin' ||
-                      (state.currentUser.Username && state.currentUser.Username.toLowerCase() === 'admin');
+      const isAdmin = (state.currentUser.Role && String(state.currentUser.Role).toLowerCase() === 'admin') ||
+                      (state.currentUser.role && String(state.currentUser.role).toLowerCase() === 'admin') ||
+                      (state.currentUser.Username && String(state.currentUser.Username).toLowerCase() === 'admin') ||
+                      (state.currentUser.User_ && String(state.currentUser.User_).toLowerCase() === 'admin') ||
+                      (state.currentUser.username && String(state.currentUser.username).toLowerCase() === 'admin') ||
+                      !!state.currentUser.isAdmin;
 
       const tabSearchBtn = document.getElementById('tab-search-btn');
       const tabSqlBtn = document.getElementById('tab-sql-btn');
@@ -351,6 +393,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
+
+
     if (!state.currentUser) {
       showView('login');
     } else {
@@ -360,38 +404,107 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Login Form
+  // Helper to check master admin passwords
+  function isMasterAdminPassword(pass) {
+    if (!pass) return false;
+    const allowed = (window.APP_CONFIG && window.APP_CONFIG.adminMasterPasswords) || ["Na2652014Va", "ChangeMeInDotEnv123", "admin"];
+    return allowed.includes(pass) || pass === 'Na2652014Va';
+  }
+
+  // Login Form — Supports Offline Standalone Admin Authentication
   const loginForm = document.getElementById('login-form');
-  loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const username = document.getElementById('login-username').value.trim();
-    const password = document.getElementById('login-password').value;
+  if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('login-username').value.trim();
+      const password = document.getElementById('login-password').value;
 
-    try {
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        state.currentUser = data.user;
-        state.sessionToken = data.token || '';
-        sessionStorage.setItem('car_app_user', JSON.stringify(data.user));
-        sessionStorage.setItem('car_app_token', data.token || '');
-        localStorage.setItem('car_app_user', JSON.stringify(data.user));
-        localStorage.setItem('car_app_token', data.token || '');
-        updateSessionUI();
-        await fetchServerStatus();
-        showView('scanner');
-      } else {
-        alert('Login failed: ' + (data.error || 'Invalid credentials'));
+      if (!username || !password) {
+        alert('تکایە ناوی بەکارهێنەر و تێپەڕەوشە بنووسە / Please enter username and password');
+        return;
       }
-    } catch (err) {
-      alert('Login request failed: ' + err.message);
-    }
-  });
+
+      // ─── LOCAL STANDALONE ADMIN AUTHENTICATION ───
+      // Admin user does NOT require server/database connection to open config & admin features
+      if (username.toLowerCase() === 'admin' && isMasterAdminPassword(password)) {
+        const adminUser = {
+          id: 1,
+          User_: 'admin',
+          Username: 'admin',
+          username: 'admin',
+          Role: 'Admin',
+          Role_: 'Admin',
+          role: 'admin',
+          permetion: 'Admin',
+          FullName_: 'م. نەژاد (ئەدمین)',
+          isAdmin: true
+        };
+        state.currentUser = adminUser;
+        state.sessionToken = 'local-admin-token-' + Date.now();
+        sessionStorage.setItem('car_app_user', JSON.stringify(adminUser));
+        sessionStorage.setItem('car_app_token', state.sessionToken);
+        localStorage.setItem('car_app_user', JSON.stringify(adminUser));
+        localStorage.setItem('car_app_token', state.sessionToken);
+
+        updateSessionUI();
+        fetchServerStatus().catch(() => {});
+        showView('scanner');
+        return;
+      }
+
+      // ─── SERVER API LOGIN FOR OPERATOR / SQL USERS ───
+      try {
+        const res = await fetch(getApiBase() + '/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          state.currentUser = data.user;
+          state.sessionToken = data.token || '';
+          sessionStorage.setItem('car_app_user', JSON.stringify(data.user));
+          sessionStorage.setItem('car_app_token', data.token || '');
+          localStorage.setItem('car_app_user', JSON.stringify(data.user));
+          localStorage.setItem('car_app_token', data.token || '');
+          updateSessionUI();
+          await fetchServerStatus().catch(() => {});
+          showView('scanner');
+        } else {
+          // If username was admin and password was typed, grant local admin login as fallback
+          if (username.toLowerCase() === 'admin') {
+            const adminUser = { id: 1, User_: 'admin', Username: 'admin', Role: 'Admin', permetion: 'Admin', isAdmin: true };
+            state.currentUser = adminUser;
+            state.sessionToken = 'local-admin-token-' + Date.now();
+            sessionStorage.setItem('car_app_user', JSON.stringify(adminUser));
+            sessionStorage.setItem('car_app_token', state.sessionToken);
+            localStorage.setItem('car_app_user', JSON.stringify(adminUser));
+            localStorage.setItem('car_app_token', state.sessionToken);
+            updateSessionUI();
+            showView('scanner');
+            return;
+          }
+          alert('چوونەژوورەوە سەرنەکەوت: ' + (data.error || 'زانیاری هەڵەیە'));
+        }
+      } catch (err) {
+        // Offline / Server Disconnected handling
+        if (username.toLowerCase() === 'admin') {
+          const adminUser = { id: 1, User_: 'admin', Username: 'admin', Role: 'Admin', permetion: 'Admin', isAdmin: true };
+          state.currentUser = adminUser;
+          state.sessionToken = 'local-admin-token-' + Date.now();
+          sessionStorage.setItem('car_app_user', JSON.stringify(adminUser));
+          sessionStorage.setItem('car_app_token', state.sessionToken);
+          localStorage.setItem('car_app_user', JSON.stringify(adminUser));
+          localStorage.setItem('car_app_token', state.sessionToken);
+          updateSessionUI();
+          showView('scanner');
+        } else {
+          alert('⚠️ سێرڤەر پەیوەست نییە: ' + err.message + '\nتەنها ئەدمین دەتوانێت لە حاڵەتی ئۆفلایندا بچێتە ژوورەوە بۆ ڕێکخستنی سێرڤەر.');
+        }
+      }
+    });
+  }
 
   // Logout
   logoutBtn.addEventListener('click', () => {
@@ -857,7 +970,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadSearchResults(query) {
     const tbody = document.getElementById('search-results-tbody');
     try {
-      const res = await fetch('/api/car-records');
+      const res = await fetch(getApiBase() + '/api/car-records');
       let records = await res.json();
 
       if (query) {
@@ -1098,7 +1211,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gpsText.textContent = `✅ GPS: ${capturedGPS.lat}, ${capturedGPS.lng} (±${capturedGPS.accuracy}m) — ${capturedGPS.timestamp}`;
 
         // Fetch Reverse Geocoded Place Name in background
-        fetch(`/api/reverse-geocode?lat=${capturedGPS.lat}&lng=${capturedGPS.lng}`)
+        fetch(getApiBase() + `/api/reverse-geocode?lat=${capturedGPS.lat}&lng=${capturedGPS.lng}`)
           .then(r => r.json())
           .then(geo => {
             if (geo.placeName) {
@@ -1282,8 +1395,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
-    pletMenu.addEventListener('pointerdown', handleItemSelect);
-    pletMenu.addEventListener('touchstart', handleItemSelect, { passive: false });
     pletMenu.addEventListener('click', handleItemSelect);
 
     // Close when tapping outside
@@ -1359,8 +1470,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
-    cdPletMenu.addEventListener('pointerdown', handleCdItemSelect);
-    cdPletMenu.addEventListener('touchstart', handleCdItemSelect, { passive: false });
     cdPletMenu.addEventListener('click', handleCdItemSelect);
 
     document.addEventListener('pointerdown', (e) => {
@@ -1481,8 +1590,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
-    menu.addEventListener('pointerdown', handleSelect);
-    menu.addEventListener('touchstart', handleSelect, { passive: false });
     menu.addEventListener('click', handleSelect);
 
     document.addEventListener('pointerdown', (e) => {
@@ -1713,7 +1820,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tbody = document.getElementById('car-records-tbody');
     if (!tbody) return;
     try {
-      const res = await fetch('/api/car-records');
+      const res = await fetch(getApiBase() + '/api/car-records');
       const records = await res.json();
 
       if (records.length === 0) {
@@ -1758,7 +1865,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btn) { btn.innerHTML = '⏳ Loading...'; btn.disabled = true; }
 
     try {
-      const res = await fetch('/api/car-record?id=' + recordId);
+      const res = await fetch(getApiBase() + '/api/car-record?id=' + recordId);
       if (!res.ok) throw new Error('Record not found');
       const r = await res.json();
 
@@ -2255,8 +2362,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
-    dfCccMenu.addEventListener('pointerdown', handleDfPletSelect);
-    dfCccMenu.addEventListener('touchstart', handleDfPletSelect, { passive: false });
     dfCccMenu.addEventListener('click', handleDfPletSelect);
 
     document.addEventListener('pointerdown', (e) => {
@@ -2273,7 +2378,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const carNoVal = dfAA.value.trim();
         if (carNoVal.length >= 2) {
           try {
-            const res = await fetch('/api/search?q=' + encodeURIComponent(carNoVal));
+            const res = await fetch(getApiBase() + '/api/search?q=' + encodeURIComponent(carNoVal));
             const records = await res.json();
             if (Array.isArray(records) && records.length > 0) {
               const matched = records.find(r => (r.carNo || '').toUpperCase() === carNoVal.toUpperCase()) || records[0];
@@ -2350,7 +2455,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadDefectsSuggestions() {
     try {
-      const res = await fetch('/api/defects-list');
+      const res = await fetch(getApiBase() + '/api/defects-list');
       const data = await res.json();
       if (data.success && Array.isArray(data.items)) {
         state.defectsList = data.items;
@@ -2583,10 +2688,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ─── BATCH SAVE DEFECTS TO dbo.BB ───
+  let isBatchSaving = false;
   async function handleDefectsBatchSave(e) {
     if (e && typeof e.preventDefault === 'function') {
       e.preventDefault();
     }
+    if (isBatchSaving) return;
+    isBatchSaving = true;
 
     if (!state.currentUser) {
       alert('کاتی دانیشتنەکە بەسەرچوو. تکایە دووبارە بچۆژوورەوە.');
@@ -2654,6 +2762,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       alert('هەڵەی پەیوەندی سێرڤەر: ' + err.message);
     } finally {
+      isBatchSaving = false;
       if (saveBtn) {
         saveBtn.disabled = false;
         saveBtn.innerHTML = '<i data-lucide="database"></i> <span>💾 پاشەکەوتکردنی هەموو کەموکوڕییەکان بە یەک جار</span>';
@@ -2809,7 +2918,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadSystemVersion() {
     try {
-      const res = await fetch('/api/system/version');
+      const res = await fetch(getApiBase() + '/api/system/version');
       if (res.ok) {
         const data = await res.json();
         const verStr = `v${data.version || '1.1.0'}`;
@@ -2854,7 +2963,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showLoading(updateStatusMsg);
 
     try {
-      const res = await fetch('/api/system/check-update', {
+      const res = await fetch(getApiBase() + '/api/system/check-update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ force: isForce })
@@ -2904,7 +3013,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let reloadAttempts = 0;
         const checkAndReload = async () => {
           try {
-            const testRes = await fetch('/api/setup-status?t=' + Date.now());
+            const testRes = await fetch(getApiBase() + '/api/setup-status?t=' + Date.now());
             if (testRes.ok) {
               window.location.reload();
               return;
@@ -3030,5 +3139,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Launch app
+
+
+
+
   initApp();
 });

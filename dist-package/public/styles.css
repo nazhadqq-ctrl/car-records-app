@@ -649,6 +649,7 @@ select option, optgroup {
   background: linear-gradient(rgba(255,255,255,0.1), transparent);
   opacity: 0;
   transition: opacity var(--transition-fast);
+  pointer-events: none;
 }
 
 .btn:active::after { opacity: 1; }

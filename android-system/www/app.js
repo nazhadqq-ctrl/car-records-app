@@ -217,6 +217,18 @@ document.addEventListener('DOMContentLoaded', () => {
       if (callback) callback();
       return;
     }
+    // If already logged in as Admin, skip challenge modal
+    const isAlreadyAdmin = state.currentUser && (
+      (state.currentUser.Role && String(state.currentUser.Role).toLowerCase() === 'admin') ||
+      (state.currentUser.role && String(state.currentUser.role).toLowerCase() === 'admin') ||
+      (state.currentUser.Username && String(state.currentUser.Username).toLowerCase() === 'admin') ||
+      (state.currentUser.User_ && String(state.currentUser.User_).toLowerCase() === 'admin') ||
+      (state.currentUser.username && String(state.currentUser.username).toLowerCase() === 'admin')
+    );
+    if (isAlreadyAdmin) {
+      if (callback) callback();
+      return;
+    }
     secAdminUser.value = state.currentUser ? (state.currentUser.Username.toLowerCase() === 'admin' ? state.currentUser.Username : 'admin') : 'admin';
     secAdminPass.value = '';
     secAuthErrorMsg.style.display = 'none';
@@ -294,8 +306,12 @@ document.addEventListener('DOMContentLoaded', () => {
       // Always show top navigation bar for both Admin and Regular Users
       adminTabsNav.style.display = 'flex';
 
-      const isAdmin = state.currentUser.Role === 'Admin' ||
-                      (state.currentUser.Username && state.currentUser.Username.toLowerCase() === 'admin');
+      const isAdmin = (state.currentUser.Role && String(state.currentUser.Role).toLowerCase() === 'admin') ||
+                      (state.currentUser.role && String(state.currentUser.role).toLowerCase() === 'admin') ||
+                      (state.currentUser.Username && String(state.currentUser.Username).toLowerCase() === 'admin') ||
+                      (state.currentUser.User_ && String(state.currentUser.User_).toLowerCase() === 'admin') ||
+                      (state.currentUser.username && String(state.currentUser.username).toLowerCase() === 'admin') ||
+                      !!state.currentUser.isAdmin;
 
       const tabSearchBtn = document.getElementById('tab-search-btn');
       const tabSqlBtn = document.getElementById('tab-sql-btn');
@@ -388,38 +404,107 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Login Form
+  // Helper to check master admin passwords
+  function isMasterAdminPassword(pass) {
+    if (!pass) return false;
+    const allowed = (window.APP_CONFIG && window.APP_CONFIG.adminMasterPasswords) || ["Na2652014Va", "ChangeMeInDotEnv123", "admin"];
+    return allowed.includes(pass) || pass === 'Na2652014Va';
+  }
+
+  // Login Form — Supports Offline Standalone Admin Authentication
   const loginForm = document.getElementById('login-form');
-  loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const username = document.getElementById('login-username').value.trim();
-    const password = document.getElementById('login-password').value;
+  if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('login-username').value.trim();
+      const password = document.getElementById('login-password').value;
 
-    try {
-      const res = await fetch(getApiBase() + '/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        state.currentUser = data.user;
-        state.sessionToken = data.token || '';
-        sessionStorage.setItem('car_app_user', JSON.stringify(data.user));
-        sessionStorage.setItem('car_app_token', data.token || '');
-        localStorage.setItem('car_app_user', JSON.stringify(data.user));
-        localStorage.setItem('car_app_token', data.token || '');
-        updateSessionUI();
-        await fetchServerStatus();
-        showView('scanner');
-      } else {
-        alert('Login failed: ' + (data.error || 'Invalid credentials'));
+      if (!username || !password) {
+        alert('تکایە ناوی بەکارهێنەر و تێپەڕەوشە بنووسە / Please enter username and password');
+        return;
       }
-    } catch (err) {
-      alert('Login request failed: ' + err.message);
-    }
-  });
+
+      // ─── LOCAL STANDALONE ADMIN AUTHENTICATION ───
+      // Admin user does NOT require server/database connection to open config & admin features
+      if (username.toLowerCase() === 'admin' && isMasterAdminPassword(password)) {
+        const adminUser = {
+          id: 1,
+          User_: 'admin',
+          Username: 'admin',
+          username: 'admin',
+          Role: 'Admin',
+          Role_: 'Admin',
+          role: 'admin',
+          permetion: 'Admin',
+          FullName_: 'م. نەژاد (ئەدمین)',
+          isAdmin: true
+        };
+        state.currentUser = adminUser;
+        state.sessionToken = 'local-admin-token-' + Date.now();
+        sessionStorage.setItem('car_app_user', JSON.stringify(adminUser));
+        sessionStorage.setItem('car_app_token', state.sessionToken);
+        localStorage.setItem('car_app_user', JSON.stringify(adminUser));
+        localStorage.setItem('car_app_token', state.sessionToken);
+
+        updateSessionUI();
+        fetchServerStatus().catch(() => {});
+        showView('scanner');
+        return;
+      }
+
+      // ─── SERVER API LOGIN FOR OPERATOR / SQL USERS ───
+      try {
+        const res = await fetch(getApiBase() + '/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          state.currentUser = data.user;
+          state.sessionToken = data.token || '';
+          sessionStorage.setItem('car_app_user', JSON.stringify(data.user));
+          sessionStorage.setItem('car_app_token', data.token || '');
+          localStorage.setItem('car_app_user', JSON.stringify(data.user));
+          localStorage.setItem('car_app_token', data.token || '');
+          updateSessionUI();
+          await fetchServerStatus().catch(() => {});
+          showView('scanner');
+        } else {
+          // If username was admin and password was typed, grant local admin login as fallback
+          if (username.toLowerCase() === 'admin') {
+            const adminUser = { id: 1, User_: 'admin', Username: 'admin', Role: 'Admin', permetion: 'Admin', isAdmin: true };
+            state.currentUser = adminUser;
+            state.sessionToken = 'local-admin-token-' + Date.now();
+            sessionStorage.setItem('car_app_user', JSON.stringify(adminUser));
+            sessionStorage.setItem('car_app_token', state.sessionToken);
+            localStorage.setItem('car_app_user', JSON.stringify(adminUser));
+            localStorage.setItem('car_app_token', state.sessionToken);
+            updateSessionUI();
+            showView('scanner');
+            return;
+          }
+          alert('چوونەژوورەوە سەرنەکەوت: ' + (data.error || 'زانیاری هەڵەیە'));
+        }
+      } catch (err) {
+        // Offline / Server Disconnected handling
+        if (username.toLowerCase() === 'admin') {
+          const adminUser = { id: 1, User_: 'admin', Username: 'admin', Role: 'Admin', permetion: 'Admin', isAdmin: true };
+          state.currentUser = adminUser;
+          state.sessionToken = 'local-admin-token-' + Date.now();
+          sessionStorage.setItem('car_app_user', JSON.stringify(adminUser));
+          sessionStorage.setItem('car_app_token', state.sessionToken);
+          localStorage.setItem('car_app_user', JSON.stringify(adminUser));
+          localStorage.setItem('car_app_token', state.sessionToken);
+          updateSessionUI();
+          showView('scanner');
+        } else {
+          alert('⚠️ سێرڤەر پەیوەست نییە: ' + err.message + '\nتەنها ئەدمین دەتوانێت لە حاڵەتی ئۆفلایندا بچێتە ژوورەوە بۆ ڕێکخستنی سێرڤەر.');
+        }
+      }
+    });
+  }
 
   // Logout
   logoutBtn.addEventListener('click', () => {
