@@ -21,18 +21,9 @@
         <div style="font-size:0.68rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="header-status">System Ready</div>
       </div>
     </div>
-    <div style="display:flex; align-items:center; gap:0.5rem; flex-shrink:0;">
-      <!-- Server Connection Status Pill (Clickable) -->
-      <button type="button" id="btn-header-server-settings" class="server-status-pill" title="ڕێکخستنی ناونیشانی سێرڤەر (Server Connection)">
-        <span class="server-pill-icon">🌐</span>
-        <span id="header-server-ip-label" class="server-pill-label">192.168.1.100:3002</span>
-        <span id="header-server-dot" class="status-dot dot-green"></span>
-      </button>
-
-      <div id="user-session-box" style="display:flex; align-items:center; gap:0.6rem; flex-shrink:0;">
-        <span id="logged-user-name" style="font-weight:700; font-size:0.78rem; color:var(--accent-cyan); white-space:nowrap;">Guest</span>
-        <button type="button" class="btn btn-secondary" id="logout-btn" style="display:none; padding:0.35rem 0.7rem; font-size:0.72rem; border-radius:6px;" title="Logout">⎋</button>
-      </div>
+    <div id="user-session-box" style="display:flex; align-items:center; gap:0.6rem; flex-shrink:0;">
+      <span id="logged-user-name" style="font-weight:700; font-size:0.78rem; color:var(--accent-cyan); white-space:nowrap;">Guest</span>
+      <button type="button" class="btn btn-secondary" id="logout-btn" style="display:none; padding:0.35rem 0.7rem; font-size:0.72rem; border-radius:6px;" title="Logout">⎋</button>
     </div>
   </header>
 
@@ -1115,20 +1106,6 @@
     <!-- LOGIN VIEW -->
     <section id="view-login" class="page-view active">
       <div style="max-width:420px; margin:0 auto;">
-        <!-- Server Connection Status Box directly on Login -->
-        <div class="login-server-status-box" id="login-server-box">
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem;">
-            <div style="display:flex; align-items:center; gap:0.45rem; font-size:0.8rem; font-weight:600; color:var(--text-label);">
-              <span>🌐 سێرڤەر:</span>
-              <span id="login-server-ip-display" style="font-family:'JetBrains Mono',monospace; color:var(--accent-cyan); font-weight:700;">192.168.1.100:3002</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:0.4rem;">
-              <span id="login-server-badge-text" class="server-badge-status status-connected">🟢 پەیوەستکراوە</span>
-              <button type="button" class="btn-server-edit" id="btn-login-open-server-modal" title="گۆڕینی ناونیشانی سێرڤەر">⚙️ گۆڕین</button>
-            </div>
-          </div>
-        </div>
-
         <div class="glass-card">
           <h2 class="card-title">
             <i data-lucide="shield-check" style="color: var(--accent-cyan);"></i>
@@ -1165,63 +1142,6 @@
         </div>
       </div>
     </section>
-
-    <!-- SERVER CONNECTION SETTINGS MODAL -->
-    <div id="server-settings-modal" class="custom-modal-backdrop" style="display:none;">
-      <div class="custom-modal-card" style="max-width:480px;">
-        <div class="modal-header-security" style="display:flex; align-items:center; gap:0.9rem; padding-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.08);">
-          <div style="
-            width:48px; height:48px; border-radius:12px;
-            background:linear-gradient(135deg, rgba(34,211,238,0.2), rgba(99,102,241,0.2));
-            border:1.5px solid rgba(34,211,238,0.5);
-            display:flex; align-items:center; justify-content:center;
-            font-size:1.5rem; flex-shrink:0;
-          ">🌐</div>
-          <div>
-            <h3 style="margin:0; font-size:1.05rem; color:#fff; font-weight:700;">ڕێکخستنی ناونیشانی سێرڤەر (Server Connection)</h3>
-            <p style="margin:4px 0 0; font-size:0.78rem; color:var(--text-muted);">
-              ناونیشانی سێرڤەری سەرەکی بنووسە بۆ بەستنەوەی تابلێت و مۆبایل.
-            </p>
-          </div>
-        </div>
-
-        <form id="server-settings-form" style="margin-top:1.25rem;">
-          <div class="form-group" style="margin-bottom:0.75rem;">
-            <label style="display:flex; justify-content:space-between; align-items:center;">
-              <span>ناونیشانی سێرڤەر (Server IP &amp; Port)</span>
-              <span style="font-size:0.72rem; color:var(--accent-cyan);">e.g. http://192.168.1.100:3002</span>
-            </label>
-            <input type="text" id="input-modal-server-url" required placeholder="http://192.168.1.100:3002" style="font-family:'JetBrains Mono',monospace; direction:ltr; text-align:left; font-weight:700;">
-          </div>
-
-          <!-- Quick presets -->
-          <div style="margin-bottom:1rem;">
-            <span style="font-size:0.72rem; color:var(--text-muted); display:block; margin-bottom:0.4rem;">ناونیشانە ئامادەکراوەکان:</span>
-            <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
-              <button type="button" class="server-preset-chip" data-ip="http://192.168.1.100:3002">192.168.1.100:3002</button>
-              <button type="button" class="server-preset-chip" data-ip="http://192.168.1.50:3002">192.168.1.50:3002</button>
-              <button type="button" class="server-preset-chip" data-ip="http://192.168.0.100:3002">192.168.0.100:3002</button>
-              <button type="button" class="server-preset-chip" data-ip="http://localhost:3002">localhost:3002</button>
-            </div>
-          </div>
-
-          <!-- Test result box -->
-          <div id="server-modal-feedback" style="display:none; padding:0.75rem; border-radius:6px; font-size:0.82rem; margin-bottom:1.2rem; text-align:center; font-weight:600; line-height:1.5;"></div>
-
-          <div style="display:flex; gap:0.6rem; justify-content:flex-end; flex-wrap:wrap;">
-            <button type="button" class="btn btn-secondary" id="btn-cancel-server-modal">✕ داخستن</button>
-            <button type="button" class="btn" id="btn-test-modal-server" style="background:rgba(34,211,238,0.15); border:1px solid rgba(34,211,238,0.4); color:var(--accent-cyan); font-weight:700;">
-              <i data-lucide="activity"></i>
-              <span>تاقیکردنەوەی پەیوەندی</span>
-            </button>
-            <button type="submit" class="btn btn-primary" id="btn-save-modal-server" style="min-width:140px;">
-              <i data-lucide="check"></i>
-              <span>پاشەکەوتکردن</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
 
     <!-- ADMIN SECURITY CHALLENGE MODAL (PROMPTS ON SQL SERVER TAB CLICK) -->
     <div id="admin-security-modal" class="custom-modal-backdrop" style="display:none;">

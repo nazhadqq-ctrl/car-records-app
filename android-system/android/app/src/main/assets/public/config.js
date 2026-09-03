@@ -1,19 +1,30 @@
 /**
  * 🚗 CAR MANAGEMENT SYSTEM - STANDALONE CONFIGURATION FILE
  * ═══════════════════════════════════════════════════════════════
- * You can edit this file to change the default server IP and port,
- * or configure Master Admin Passwords.
+ * This file contains all primary configuration settings.
+ * You can edit this file to configure the backend server IP and port,
+ * default SQL database parameters, and Master Admin Passwords.
  * 
- * دەتوانیت ئەم فایله دەستکاری بکەیت بۆ گۆڕینی ئای‌پی سێرڤەر و وشەی نهێنی ئەدمین
+ * ئەم فایله تایبەتە بە ڕێکخستنی سەرەکی سیستم: ناونیشانی سێرڤەر و داتابەیس و وشەی نهێنی
  * ═══════════════════════════════════════════════════════════════
  */
 
 window.APP_CONFIG = {
-  // Default server address (IP:Port or http://domain)
-  // ئای‌پی سێرڤەری سەرەکی کە سیستمەکەی لەسەر بەگەڕخراوە
-  serverUrl: "http://192.168.1.100:3002",
+  // Default Backend Server URL (Node.js API Server on port 3002)
+  // ئای‌پی و پۆڕتی سێرڤەری پرۆگرامەکە (بۆ بەستنەوەی ئەندرۆید و تابلێت)
+  serverUrl: "http://185.181.111.17:3002",
 
-  // Master Admin Passwords accepted locally (works even when server is offline/disconnected)
+  // Default SQL Server Database parameters
+  // زانیارییە سەرەکییەکانی بنکەی دراوەی ئێس کیو ئێڵ
+  sqlServer: {
+    server: "185.181.111.17",
+    database: "image_coart",
+    user: "ASA",
+    password: "Nazhad9999",
+    port: 1433
+  },
+
+  // Master Admin Passwords (works 100% offline & online)
   // وشەکانی نهێنی ئەدمین کە بە بێ سێرڤەر و بە ئۆفلاین کار دەکەن
   adminMasterPasswords: [
     "Na2652014Va",

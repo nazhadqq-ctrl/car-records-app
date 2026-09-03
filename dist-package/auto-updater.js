@@ -78,7 +78,7 @@ function getLocalVersion() {
       return JSON.parse(fs.readFileSync(p, 'utf8'));
     }
   } catch (e) {}
-  return { version: '1.3.3', build: 180 };
+  return { version: '1.3.4', build: 190 };
 }
 
 async function checkForUpdates(force = false) {
